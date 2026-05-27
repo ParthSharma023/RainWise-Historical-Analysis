@@ -26,6 +26,18 @@
 
 ---
 
+## Drive & Path Mappings
+
+Known mappings between SharePoint/network paths in the Power BI model and local E: drive locations.
+
+| SharePoint / Network Path | Local E: Drive Path | Status |
+|---|---|---|
+| `houtx.sharepoint.com/sites/Ready-to-ConsumeDataWarehouse/Shared Documents/General/GIS Database/` | `E:\landing\GIS Database` | Confirmed |
+| `houtx.sharepoint.com/sites/HWiP-WWO/Shared Documents/WW_Reg_Compliance/SSO_Tracking/` | Unknown | Not yet mapped |
+| `\\10.120.148.123\hwDataLakeWWIP_s3\DaaP\Rain_Frequency\rain_gauge_frequency\all_rain_gauge_frequency.csv` | Unknown | Network share — used by Combined_Rain and Combined_Frequency tables |
+
+---
+
 ## Data Model Summary
 
 ### Core Tables
