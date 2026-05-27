@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Near Realtime Daily Rainfall — RainWise</title>
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="../data/dims.js"></script>
+  <script src="../data/rain_2015.js"></script>
+  <script src="../data/rain_2016.js"></script>
+  <script src="../data/rain_2017.js"></script>
+  <script src="../data/rain_2018.js"></script>
+  <script src="../data/rain_2019.js"></script>
+  <script src="../data/rain_2020.js"></script>
+  <script src="../data/rain_2021.js"></script>
+  <script src="../data/rain_2022.js"></script>
+  <script src="../data/rain_2023.js"></script>
+  <script src="../data/rain_2024.js"></script>
+  <script src="../data/rain_2025.js"></script>
+  <script src="../data/rain_2026.js"></script>
+  <script src="../dataLoader.js"></script>
+  <script src="../components.js"></script>
+  <style>
+    /* Top header bar */
+    .pbi-header {
+      flex-shrink: 0; width: 100%; height: 64px; box-sizing: border-box;
+      background: linear-gradient(90deg, #1a4a6e 0%, #0e2a42 100%);
+      border-bottom: 2px solid #2d7ab0;
+      display: flex; align-items: center; padding: 0 12px; gap: 8px;
+      overflow: visible; z-index: 200;
+    }
+    .pbi-header-back { color: #5da8ff; text-decoration: none; font-size: 18px; line-height: 1; flex-shrink: 0; }
+    .pbi-header-title { font-size: 14px; font-weight: 700; color: #f1f5fb; white-space: nowrap; }
+
+    /* Compact slicer in header */
+    .hdr-slicer {
+      display: flex; flex-direction: column; gap: 2px;
+      padding: 4px 6px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(139,175,214,0.22);
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+    .hdr-slicer .sl-lbl { font-size: 9px; color: #6a8aaa; text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+    .hdr-slicer select {
+      background: rgba(12,21,34,0.8); color: #f1f5fb; border: none;
+      font-size: 11px; outline: none; cursor: pointer; padding: 0 2px;
+      appearance: none; -webkit-appearance: none;
+      width: 100%;
+    }
+    /* Gage multi-select dropdown */
+    .gage-slicer-wrap {
+      display: flex; flex-direction: column; gap: 2px;
+      padding: 4px 6px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(139,175,214,0.22);
+      border-radius: 6px;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .gage-slicer-wrap .sl-lbl { font-size: 9px; color: #6a8aaa; text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+    .gage-trigger {
+      font-size: 11px; color: #f1f5fb; cursor: pointer; white-space: nowrap;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .gage-trigger::after { content: '▾'; font-size: 9px; color: #6a8aaa; }
+    .gage-dropdown {
+      display: none; position: absolute; top: 100%; left: 0; z-index: 9999;
+      background: #162436; border: 1px solid rgba(139,175,214,0.3);
+      border-radius: 6px; padding: 6px; min-width: 130px;
+      max-height: 240px; overflow-y: auto;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+    .gage-dropdown.open { display: block; }
+    .gage-dropdown label {
+      display: flex; align-items: center; gap: 5px; font-size: 10px;
+      color: #b4c0d0; padding: 2px 4px; cursor: pointer; white-space: nowrap;
+    }
+    .gage-dropdown label:hover { color: #f1f5fb; }
+    .gage-dropdown input[type=checkbox] { accent-color: #5da8ff; width: 11px; height: 11px; }
+    .gage-dropdown .dd-all { border-bottom: 1px solid rgba(139,175,214,0.18); margin-bottom: 4px; padding-bottom: 4px; }
+
+    /* Two-panel content row */
+    .main-row {
+      display: flex; flex: 1; overflow: hidden; min-height: 0;
+    }
+
+    /* Heatmap panel */
+    .heatmap-panel {
+      flex: 0 0 57%; height: 100%;
+      background: linear-gradient(180deg,rgba(22,36,54,.97),rgba(16,28,44,.97));
+      border-right: 1px solid rgba(139,175,214,0.18);
+      overflow: hidden; display: flex; flex-direction: column;
+    }
+    .heatmap-panel .hm-title {
+      flex-shrink: 0;
+      padding: 7px 10px 6px;
+      font-size: 12px; font-weight: 700; color: #f1f5fb;
+      background: rgba(30,50,80,0.7);
+      border-bottom: 2px solid rgba(93,168,255,0.45);
+      border-top: 1px solid rgba(139,175,214,0.18);
+      letter-spacing: 0.01em;
+    }
+    .heatmap-inner {
+      flex: 1; overflow: hidden; min-height: 0;
+    }
+
+    /* Map panel */
+    .map-panel {
+      flex: 1; height: 100%; position: relative;
+      border-left: 1px solid rgba(139,175,214,0.18);
+      background: #0e1e2e;
+    }
+    #leaflet-map {
+      width: 100%; height: 100%;
+    }
+
+    /* Leaflet dark overrides */
+    .leaflet-container { background: #0e1e2e; }
+    .leaflet-tile-pane { filter: brightness(0.75) saturate(0.6) hue-rotate(180deg); }
+    .leaflet-control-attribution { background: rgba(12,21,34,0.7) !important; color: #6a8aaa !important; }
+    .leaflet-control-attribution a { color: #5da8ff !important; }
+    .leaflet-control-zoom a { background: #162436 !important; color: #b4c0d0 !important; border-color: rgba(139,175,214,0.3) !important; }
+    .leaflet-control-zoom a:hover { background: #1e3050 !important; color: #f1f5fb !important; }
+
+    /* Custom map marker popup */
+    .leaflet-popup-content-wrapper {
+      background: rgba(16,28,44,0.96) !important;
+      border: 1px solid rgba(139,175,214,0.3) !important;
+      border-radius: 8px !important;
+      color: #f1f5fb !important;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.5) !important;
+    }
+    .leaflet-popup-tip { background: rgba(16,28,44,0.96) !important; }
+    .leaflet-popup-content { font-size: 12px; line-height: 1.6; }
+    .popup-gage { font-weight: 700; font-size: 13px; color: #5da8ff; }
+    .popup-loc { color: #8aaccc; font-size: 11px; }
+    .popup-rain { font-size: 14px; font-weight: 800; }
+    .popup-cat { font-size: 10px; color: #8aaccc; }
+
+    /* Pie chart DivIcon — strip Leaflet default wrapper, force pointer events through */
+    .pie-marker { background: none !important; border: none !important; pointer-events: all !important; }
+    .pie-marker svg { pointer-events: all; }
+    .pie-marker svg path, .pie-marker svg circle[data-gage] { transition: opacity 0.1s; pointer-events: fill; }
+    .pie-marker:hover svg path, .pie-marker:hover svg circle[data-gage] { opacity: 0.85; }
+
+    /* Rain legend */
+    .map-legend {
+      position: absolute; bottom: 8px; left: 4px; z-index: 1000;
+      background: rgba(12,21,34,0.88); border: 1px solid rgba(139,175,214,0.22);
+      border-radius: 6px; padding: 5px 8px; font-size: 10px; color: #b4c0d0;
+    }
+    .map-legend-row { display: flex; align-items: center; gap: 5px; margin: 2px 0; }
+    .map-legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  </style>
+</head>
+<body style="margin:0;overflow:hidden;display:flex;flex-direction:column;height:100vh;background:#0c1522;">
+
+  <!-- Header with slicers -->
+  <div class="pbi-header" id="hdr">
+    <a class="pbi-header-back" href="../index.html" title="Back">&#8592;</a>
+    <div class="pbi-header-title">Near-Realtime Daily Rainfall, Since 2002</div>
+
+    <!-- Gage multi-select -->
+    <div class="gage-slicer-wrap" style="width:148px;">
+      <div class="sl-lbl">Raingage, HCFCD</div>
+      <div class="gage-trigger" id="gageTrigger">All</div>
+      <div class="gage-dropdown" id="gageDropdown">
+        <div class="dd-all">
+          <label><input type="checkbox" id="gageAll" checked> Select All</label>
+        </div>
+        <div id="gageCheckboxes"></div>
+      </div>
+    </div>
+
+    <!-- Event Category -->
+    <div class="hdr-slicer" style="width:138px;">
+      <div class="sl-lbl">Event Category</div>
+      <select id="slCat">
+        <option value="">All</option>
+        <option>Zero Rain</option>
+        <option>&lt;0.3 in</option>
+        <option>0.3-1.0 in</option>
+        <option>1.0-3.0 in</option>
+        <option>3.0-5.0 in</option>
+        <option>Over 5.0 in</option>
+      </select>
+    </div>
+
+    <!-- Year-Mon -->
+    <div class="hdr-slicer" style="width:114px;" id="slYMwrap">
+      <div class="sl-lbl">Year-Mon</div>
+      <select id="slYM"><option value="">All</option></select>
+    </div>
+
+    <!-- Sewer Basin -->
+    <div class="hdr-slicer" style="width:118px;" id="slBasinWrap">
+      <div class="sl-lbl">Sewer Basin</div>
+      <select id="slBasin"><option value="">All</option></select>
+    </div>
+
+    <!-- WWTP -->
+    <div class="hdr-slicer" style="width:142px;" id="slWWTPwrap">
+      <div class="sl-lbl">WWTP</div>
+      <select id="slWWTP"><option value="">All</option></select>
+    </div>
+
+    <div style="margin-left:auto;font-size:11px;color:#6a8aaa;white-space:nowrap;" id="hdrDate"></div>
+  </div>
+
+  <div class="main-row">
+
+    <!-- Heatmap panel -->
+    <div class="heatmap-panel">
+      <div class="hm-title" id="hmTitle">Daily Rainfall by Gage — All Gages</div>
+      <div class="heatmap-inner" id="heatmapInner"></div>
+    </div>
+
+    <!-- Map panel -->
+    <div class="map-panel">
+      <div id="leaflet-map"></div>
+      <div class="map-legend" id="mapLegend"></div>
+    </div>
+
+  </div>
+
+<script>
+Components.applyChartDefaults();
+
+const rainfall = window.MOCK.Realtime_rainfall_hcfcd_daily;
+const gages    = window.MOCK.RainGauge_HCFCD;
+const basins   = window.MOCK.BasinUnique_Raingage;
+const meter    = window.MOCK.MeterBasin_RainGauge || [];
+const sso      = window.MOCK.vt_WW_SSO_Lisa;
+
+const gageMap  = {};
+gages.forEach(g => { gageMap[g.Raingage] = g; });
+
+// ── State ─────────────────────────────────────────────────────────
+let selGages   = new Set(gages.map(g => g.Raingage));  // all selected
+let selCat     = '';
+let selYM      = '';
+let selBasin   = '';
+let selWWTP    = '';
+let hoveredGage  = null;  // gage id being hovered  (tooltip + temporary heatmap filter)
+let clickedGage  = null;  // gage id clicked (persistent heatmap filter, cleared on re-click or map bg click)
+const markerRefs = {};    // gageId → Leaflet marker DOM element (for direct style updates)
+
+// ── Category → colour (matching components.js) ────────────────────
+// Colors match PBI conditional formatting exactly; Over 5.0 adapted for dark bg
+const CAT_COLOR = {
+  'Zero Rain':   '#1a2a3a',
+  '<0.3 in':     '#fbe99c',
+  '0.3-1.0 in':  '#6ed7f7',
+  '1.0-3.0 in':  '#e77946',
+  '3.0-5.0 in':  '#f5403b',
+  'Over 5.0 in': '#b0001e',
+};
+const CAT_TEXT = {
+  'Zero Rain':   '#4a6080',
+  '<0.3 in':     '#1a1a00',
+  '0.3-1.0 in':  '#003a4a',
+  '1.0-3.0 in':  '#ffffff',
+  '3.0-5.0 in':  '#ffffff',
+  'Over 5.0 in': '#ffffff',
+};
+
+// ── Populate Year-Mon slicer ───────────────────────────────────────
+const allYMs = [...new Set(rainfall.map(r => r.Year_Mon))].sort().reverse();
+const slYM = document.getElementById('slYM');
+allYMs.forEach(ym => { slYM.add(new Option(ym, ym)); });
+
+// ── Populate Basin slicer ─────────────────────────────────────────
+const allBasins = [...new Set(basins.map(b => b.METERBASIN))].sort();
+const slBasin = document.getElementById('slBasin');
+allBasins.forEach(b => { slBasin.add(new Option(b, b)); });
+
+// ── Populate WWTP slicer from MeterBasin_RainGauge SERVICE_AR ─────
+const allWWTPs = [...new Set(meter.map(m => m.SERVICE_AR).filter(Boolean))].sort();
+const slWWTP = document.getElementById('slWWTP');
+allWWTPs.forEach(w => { slWWTP.add(new Option(w, w)); });
+
+// ── Gage multi-select dropdown ─────────────────────────────────────
+const gageCheckboxes = document.getElementById('gageCheckboxes');
+const gageAll        = document.getElementById('gageAll');
+const gageTrigger    = document.getElementById('gageTrigger');
+const gageDropdown   = document.getElementById('gageDropdown');
+
+gages.forEach(g => {
+  const lbl = document.createElement('label');
+  lbl.innerHTML = `<input type="checkbox" value="${g.Raingage}" checked> ${g.Raingage}`;
+  lbl.querySelector('input').addEventListener('change', () => { syncGageState(); render(); });
+  gageCheckboxes.appendChild(lbl);
+});
+
+gageAll.addEventListener('change', () => {
+  gageCheckboxes.querySelectorAll('input').forEach(cb => { cb.checked = gageAll.checked; });
+  syncGageState(); render();
+});
+
+function syncGageState() {
+  const cbs = [...gageCheckboxes.querySelectorAll('input')];
+  selGages = new Set(cbs.filter(cb => cb.checked).map(cb => +cb.value));
+  const all = cbs.every(cb => cb.checked);
+  const none = cbs.every(cb => !cb.checked);
+  gageAll.checked = all;
+  gageAll.indeterminate = !all && !none;
+  gageTrigger.childNodes[0].textContent = all ? 'All' : (selGages.size === 0 ? 'None' : `${selGages.size} selected`);
+}
+
+// Toggle dropdown on trigger click
+gageTrigger.addEventListener('click', e => {
+  e.stopPropagation();
+  gageDropdown.classList.toggle('open');
+});
+document.addEventListener('click', () => { gageDropdown.classList.remove('open'); });
+gageDropdown.addEventListener('click', e => e.stopPropagation());
+
+// ── Filter data ───────────────────────────────────────────────────
+function filterData() {
+  let d = rainfall;
+
+  // Gage filter
+  if (selGages.size < gages.length) d = d.filter(r => selGages.has(r.Gage));
+
+  // Category filter
+  if (selCat) d = d.filter(r => r.Event_Category === selCat);
+
+  // Year-Mon filter
+  if (selYM) d = d.filter(r => r.Year_Mon === selYM);
+
+  // Basin → resolve to gage
+  if (selBasin) {
+    const mapping = basins.find(b => b.METERBASIN === selBasin);
+    if (mapping) d = d.filter(r => r.Gage === mapping.RAINGAGEID);
+  }
+
+  // WWTP filter: SERVICE_AR → RAINGAGEID → filter rainfall to those gages
+  if (selWWTP) {
+    const serviceGages = new Set(
+      meter.filter(m => m.SERVICE_AR === selWWTP).map(m => m.RAINGAGEID)
+    );
+    d = d.filter(r => serviceGages.has(r.Gage));
+  }
+
+  return d;
+}
+
+// ── Render heatmap ────────────────────────────────────────────────
+function renderHeatmap(data) {
+  // Click takes priority over hover for heatmap cross-filter
+  const activeGage = clickedGage !== null ? clickedGage : hoveredGage;
+  if (activeGage !== null) data = data.filter(r => r.Gage === activeGage);
+  const inner = document.getElementById('heatmapInner');
+  const gagesInData = new Set(data.map(r => r.Gage));
+  const displayGages = gages
+    .filter(g => gagesInData.has(g.Raingage))
+    .map(g => g.Raingage)
+    .sort((a, b) => a - b);
+
+  // Title
+  const titleEl = document.getElementById('hmTitle');
+  if (selGages.size === 1) {
+    const g = [...selGages][0];
+    titleEl.textContent = `Daily Rainfall — Gage ${g}: ${gageMap[g]?.LOCATION || ''}`;
+  } else {
+    titleEl.textContent = `Daily Rainfall by Gage — ${selGages.size === gages.length ? 'All Gages' : selGages.size + ' Gages'}`;
+  }
+
+  // Build lookup
+  const lookup = {};
+  data.forEach(r => { lookup[r.Date + '|' + r.Gage] = r; });
+
+  // Get sorted unique dates (most recent first, max 90)
+  const allDates = [...new Set(data.map(r => r.Date))].sort((a,b) => b.localeCompare(a)).slice(0, 90);
+
+  if (!allDates.length) {
+    inner.innerHTML = '<div style="padding:20px;color:#6a8aaa;font-size:12px;">No data for selected filters.</div>';
+    return;
+  }
+
+  const nGages = displayGages.length;
+  const CELL_W = Math.max(24, Math.min(40, Math.floor((718 - 62) / nGages)));
+  const CELL_H = 16;
+
+  let html = `
+    <div style="overflow:auto;height:100%;font-size:10px;">
+      <table style="border-collapse:collapse;white-space:nowrap;">
+        <thead>
+          <tr>
+            <th style="position:sticky;left:0;top:0;z-index:3;background:#162436;padding:3px 6px;min-width:62px;text-align:left;color:#8aaccc;font-size:9px;border-bottom:1px solid rgba(139,175,214,0.18);">Date</th>
+            ${displayGages.map(g => `<th style="position:sticky;top:0;z-index:2;background:#162436;padding:2px 1px;min-width:${CELL_W}px;text-align:center;color:#8aaccc;font-size:9px;border-bottom:1px solid rgba(139,175,214,0.18);">${g}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>`;
+
+  for (const date of allDates) {
+    html += `<tr>
+      <td style="position:sticky;left:0;background:#162436;padding:1px 6px;color:#b4c0d0;font-weight:600;font-size:9px;border-bottom:1px solid rgba(139,175,214,0.06);">${date}</td>`;
+    for (const g of displayGages) {
+      const row  = lookup[date + '|' + g];
+      const rain = row ? row.rain : null;
+      const cat  = row ? row.Event_Category : null;
+      const bg   = cat ? (CAT_COLOR[cat] || '#1a2a3a') : '#1a2a3a';
+      const txt  = cat ? (CAT_TEXT[cat] || '#ffffff') : '#4a6080';
+      const disp = rain !== null ? (rain === 0 ? '·' : rain.toFixed(2)) : '';
+      const tip  = `${g}: ${cat || 'No data'} (${rain !== null ? rain + ' in' : 'N/A'})`;
+      html += `<td style="background:${bg};color:${txt};text-align:center;padding:0;height:${CELL_H}px;border:1px solid rgba(0,0,0,0.18);font-size:8px;" title="${tip}">${disp}</td>`;
+    }
+    html += '</tr>';
+  }
+
+  html += `</tbody></table>
+    <div style="display:flex;gap:8px;padding:5px 6px;flex-wrap:wrap;background:#0f1e2e;position:sticky;bottom:0;">
+      ${Object.entries(CAT_COLOR).map(([c, col]) => `<span style="display:flex;align-items:center;gap:3px;font-size:9px;color:#b4c0d0;">
+        <span style="display:inline-block;width:10px;height:10px;background:${col};border-radius:2px;"></span>${c}
+      </span>`).join('')}
+    </div>
+  </div>`;
+
+  inner.innerHTML = html;
+}
+
+// ── Leaflet map ───────────────────────────────────────────────────
+const map = L.map('leaflet-map', {
+  center: [29.76, -95.37],
+  zoom: 10,
+  zoomControl: true,
+  attributionControl: true,
+});
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 18,
+}).addTo(map);
+
+const markerLayer = L.layerGroup().addTo(map);
+
+// Category index array — avoids HTML-encoding issues in SVG data-* attributes
+const PIE_CATS = ['Zero Rain', '<0.3 in', '0.3-1.0 in', '1.0-3.0 in', '3.0-5.0 in', 'Over 5.0 in'];
+const PIE_R    = 13;
+const LABEL_H  = 12;  // px reserved above the circle for the gage-number label
+
+// Zero Rain is near-black on dark tile — use visible grey for the map pie specifically
+function pieColor(cat) {
+  return cat === 'Zero Rain' ? '#4a5568' : (CAT_COLOR[cat] || '#4a5568');
+}
+
+function makePieSVG(gageId, counts) {
+  const cx   = PIE_R + 1;
+  const cy   = LABEL_H + PIE_R + 1;   // circle centre sits below the label row
+  const svgW = (PIE_R + 1) * 2;
+  const svgH = LABEL_H + svgW;
+
+  const nonZero = PIE_CATS.filter(c => counts[c] > 0);
+  const N       = nonZero.length;
+  if (N === 0) return '';
+
+  let paths = '';
+
+  if (N === 1) {
+    // Single category → solid circle
+    const cat = nonZero[0];
+    const idx = PIE_CATS.indexOf(cat);
+    paths += `<circle cx="${cx}" cy="${cy}" r="${PIE_R}" fill="${pieColor(cat)}" data-gage="${gageId}" data-catidx="${idx}" style="cursor:pointer;"/>`;
+  } else {
+    // Equal slice per existing category (matches PBI fixed bubbleSize=70 behaviour)
+    const sweep = (2 * Math.PI) / N;
+    let angle   = -Math.PI / 2;
+    PIE_CATS.forEach((cat, idx) => {
+      if (!counts[cat]) return;
+      const x1 = cx + PIE_R * Math.cos(angle);
+      const y1 = cy + PIE_R * Math.sin(angle);
+      const end = angle + sweep;
+      const x2  = cx + PIE_R * Math.cos(end);
+      const y2  = cy + PIE_R * Math.sin(end);
+      const lg  = sweep > Math.PI ? 1 : 0;
+      paths += `<path d="M${cx},${cy}L${x1.toFixed(2)},${y1.toFixed(2)}A${PIE_R},${PIE_R} 0 ${lg},1 ${x2.toFixed(2)},${y2.toFixed(2)}Z" fill="${pieColor(cat)}" data-gage="${gageId}" data-catidx="${idx}" style="cursor:pointer;"/>`;
+      angle = end;
+    });
+  }
+
+  // Outline ring (data-role="ring" for selection highlight updates)
+  paths += `<circle cx="${cx}" cy="${cy}" r="${PIE_R}" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1" data-role="ring" pointer-events="none"/>`;
+
+  // Gage label ABOVE the circle (matching PBI categoryLabels position)
+  paths += `<text x="${cx}" y="9" text-anchor="middle" font-size="8" font-weight="700" fill="#f1f5fb" font-family="Arial,sans-serif" pointer-events="none">${gageId}</text>`;
+
+  return `<svg width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg" pointer-events="all" style="overflow:visible;">${paths}</svg>`;
+}
+
+// Floating tooltip matching PBI style
+let _pieTip = null;
+function showPieTip(e, gageId, cat, lat, lon) {
+  if (!_pieTip) {
+    _pieTip = document.createElement('div');
+    _pieTip.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;background:rgba(16,28,44,0.96);border:1px solid rgba(139,175,214,0.3);border-radius:8px;padding:8px 12px;font-size:11px;color:#f1f5fb;box-shadow:0 4px 18px rgba(0,0,0,0.5);line-height:1.8;white-space:nowrap;';
+    document.body.appendChild(_pieTip);
+  }
+  _pieTip.innerHTML =
+    `<div style="font-weight:700;color:#5da8ff;font-size:13px;margin-bottom:2px;">Gage ${gageId}</div>` +
+    `<div><span style="color:#8aaccc;">Event Category</span> &nbsp;<b>${cat}</b></div>` +
+    `<div><span style="color:#8aaccc;">Average of LATITUDE</span> &nbsp;${lat.toFixed(4)}</div>` +
+    `<div><span style="color:#8aaccc;">Average of LONGITUDE</span> &nbsp;${lon.toFixed(4)}</div>`;
+  _pieTip.style.left = (e.clientX + 14) + 'px';
+  _pieTip.style.top  = (e.clientY - 10) + 'px';
+  _pieTip.style.display = 'block';
+}
+function hidePieTip() { if (_pieTip) _pieTip.style.display = 'none'; }
+
+// ── Marker selection helpers ──────────────────────────────────────
+function setMarkerSelected(gageId, selected) {
+  const el = markerRefs[gageId];
+  if (!el) return;
+  const ring = el.querySelector('[data-role="ring"]');
+  if (ring) {
+    ring.setAttribute('stroke',       selected ? '#ffffff'              : 'rgba(255,255,255,0.35)');
+    ring.setAttribute('stroke-width', selected ? '2.5'                 : '1');
+  }
+}
+
+function renderMap(data) {
+  markerLayer.clearLayers();
+  // Reset DOM refs — markers are about to be recreated
+  Object.keys(markerRefs).forEach(k => delete markerRefs[k]);
+
+  // Per-gage: which categories exist (≥1 day) in filtered data
+  const gageCounts = {};
+  data.forEach(r => {
+    if (!gageCounts[r.Gage]) gageCounts[r.Gage] = {};
+    gageCounts[r.Gage][r.Event_Category] = (gageCounts[r.Gage][r.Event_Category] || 0) + 1;
+  });
+
+  gages.forEach(g => {
+    if (!g.LATITUDE || !g.LONGITUDE) return;
+    if (selGages.size > 0 && !selGages.has(g.Raingage)) return;
+    const counts = gageCounts[g.Raingage];
+    if (!counts) return;
+
+    const icon = L.divIcon({
+      html:       makePieSVG(g.Raingage, counts),
+      className:  'pie-marker',
+      iconSize:   [(PIE_R + 1) * 2, LABEL_H + (PIE_R + 1) * 2],
+      iconAnchor: [PIE_R + 1, LABEL_H + PIE_R + 1],   // anchor = circle centre
+    });
+
+    const marker = L.marker([g.LATITUDE, g.LONGITUDE], { icon });
+    marker.addTo(markerLayer);
+
+    marker.on('add', function () {
+      const self = this;
+      setTimeout(function () {
+        const el = self.getElement();
+        if (!el) return;
+        markerRefs[g.Raingage] = el;
+        if (g.Raingage === clickedGage) setMarkerSelected(g.Raingage, true);
+
+        // Geometry-based slice detection — bypasses SVG pointer-events entirely.
+        // Leaflet fires events reliably on the DivIcon container; we do the math.
+        const CX = PIE_R + 1;
+        const CY = LABEL_H + PIE_R + 1;
+        const nonZero = PIE_CATS.filter(c => counts[c] > 0);
+        const N = nonZero.length;
+
+        function sliceFromEvent(ev) {
+          const rect = el.getBoundingClientRect();
+          const dx = ev.clientX - (rect.left + CX);
+          const dy = ev.clientY - (rect.top  + CY);
+          if (Math.sqrt(dx * dx + dy * dy) > PIE_R + 2) return null;
+          if (N === 0) return null;
+          if (N === 1) return nonZero[0];
+          const angle = Math.atan2(dy, dx);
+          const norm  = ((angle + Math.PI / 2) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+          return nonZero[Math.min(Math.floor(norm / (2 * Math.PI / N)), N - 1)];
+        }
+
+        el.addEventListener('mousemove', function (ev) {
+          const cat = sliceFromEvent(ev);
+          if (!cat) {
+            hidePieTip();
+            if (hoveredGage === g.Raingage) { hoveredGage = null; renderHeatmap(filterData()); }
+            return;
+          }
+          if (hoveredGage !== g.Raingage) { hoveredGage = g.Raingage; renderHeatmap(filterData()); }
+          showPieTip(ev, g.Raingage, cat, g.LATITUDE, g.LONGITUDE);
+        });
+
+        el.addEventListener('mouseleave', function () {
+          hidePieTip();
+          if (hoveredGage === g.Raingage) { hoveredGage = null; renderHeatmap(filterData()); }
+        });
+
+        // ── Click: persistent heatmap filter + selection ring ──
+        el.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          const gid = g.Raingage;
+          if (clickedGage === gid) {
+            setMarkerSelected(gid, false);
+            clickedGage = null;
+          } else {
+            if (clickedGage !== null) setMarkerSelected(clickedGage, false);
+            clickedGage = gid;
+            setMarkerSelected(gid, true);
+          }
+          renderHeatmap(filterData());
+        });
+      }, 0);
+    });
+  });
+
+  // Legend
+  document.getElementById('mapLegend').innerHTML =
+    PIE_CATS.map(c => `<div class="map-legend-row"><span class="map-legend-dot" style="background:${pieColor(c)};"></span>${c}</div>`).join('');
+}
+
+// Click on map background clears any persistent gage selection
+map.on('click', function () {
+  if (clickedGage !== null) {
+    setMarkerSelected(clickedGage, false);
+    clickedGage = null;
+    renderHeatmap(filterData());
+  }
+});
+
+// ── Main render ───────────────────────────────────────────────────
+function render() {
+  const d = filterData();
+  renderHeatmap(d);
+  renderMap(d);
+}
+
+// ── Cross-filter helpers: WWTP ↔ Basin ────────────────────────────
+// Selecting a WWTP narrows the Basin list to only that WWTP's service area, and vice versa.
+function rebuildBasinOptions(wwtp) {
+  const cur = slBasin.value;
+  slBasin.innerHTML = '<option value="">All Basins</option>';
+  let opts = allBasins;
+  if (wwtp) {
+    const valid = new Set(meter.filter(m => m.SERVICE_AR === wwtp).map(m => m.METERBASIN));
+    opts = allBasins.filter(b => valid.has(b));
+  }
+  opts.forEach(b => { slBasin.add(new Option(b, b)); });
+  slBasin.value = (cur && opts.includes(cur)) ? cur : '';
+  selBasin = slBasin.value;
+}
+
+function rebuildWWTPOptions(basin) {
+  const cur = slWWTP.value;
+  slWWTP.innerHTML = '<option value="">All WWTPs</option>';
+  let opts = allWWTPs;
+  if (basin) {
+    const valid = new Set(meter.filter(m => m.METERBASIN === basin).map(m => m.SERVICE_AR).filter(Boolean));
+    opts = allWWTPs.filter(w => valid.has(w));
+  }
+  opts.forEach(w => { slWWTP.add(new Option(w, w)); });
+  slWWTP.value = (cur && opts.includes(cur)) ? cur : '';
+  selWWTP = slWWTP.value;
+}
+
+// ── Slicer event listeners ─────────────────────────────────────────
+document.getElementById('slCat').addEventListener('change', e => { selCat = e.target.value; render(); });
+document.getElementById('slYM').addEventListener('change',  e => { selYM  = e.target.value; render(); });
+document.getElementById('slBasin').addEventListener('change', e => { selBasin = e.target.value; rebuildWWTPOptions(selBasin); render(); });
+document.getElementById('slWWTP').addEventListener('change',  e => { selWWTP  = e.target.value; rebuildBasinOptions(selWWTP);  render(); });
+
+// ── Header date ───────────────────────────────────────────────────
+document.getElementById('hdrDate').textContent = 'Last Update: ' + (window.MOCK.Refresh_DateTime?.Date || '—');
+
+// ── Initial render ────────────────────────────────────────────────
+render();
+
+// Invalidate map after initial layout
+setTimeout(() => { map.invalidateSize(); }, 100);
+
+// Re-invalidate map whenever the window is resized
+window.addEventListener('resize', () => setTimeout(() => map.invalidateSize(), 150));
+</script>
+</body>
+</html>

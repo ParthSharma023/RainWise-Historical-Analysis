@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Summary KPIs — RainWise</title>
+  <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="../data/dims.js"></script>
+  <script src="../data/rain_2015.js"></script>
+  <script src="../data/rain_2016.js"></script>
+  <script src="../data/rain_2017.js"></script>
+  <script src="../data/rain_2018.js"></script>
+  <script src="../data/rain_2019.js"></script>
+  <script src="../data/rain_2020.js"></script>
+  <script src="../data/rain_2021.js"></script>
+  <script src="../data/rain_2022.js"></script>
+  <script src="../data/rain_2023.js"></script>
+  <script src="../data/rain_2024.js"></script>
+  <script src="../data/rain_2025.js"></script>
+  <script src="../data/rain_2026.js"></script>
+  <script src="../dataLoader.js"></script>
+  <script src="../components.js"></script>
+  <style>
+    /* PBI canvas: 1280×720, absolutely positioned visuals */
+    .pbi-canvas { position: relative; width: 1280px; height: 720px; overflow: hidden; background: #0c1522; }
+
+    /* Top header bar matching PBI teal style */
+    .pbi-header {
+      position: absolute; left: 0; top: 0; width: 1280px; height: 44px;
+      background: linear-gradient(90deg, #1a4a6e 0%, #0e2a42 100%);
+      border-bottom: 2px solid #2d7ab0;
+      display: flex; align-items: center; padding: 0 16px; gap: 10px;
+    }
+    .pbi-header-back { color: #5da8ff; text-decoration: none; font-size: 18px; line-height: 1; }
+    .pbi-header-title { font-size: 15px; font-weight: 700; color: #f1f5fb; }
+    .pbi-header-sub   { font-size: 12px; color: #8aaccc; }
+    .pbi-header-date  { margin-left: auto; font-size: 12px; color: #8aaccc; }
+
+    /* Cards */
+    .v-card {
+      position: absolute;
+      background: linear-gradient(180deg,rgba(26,39,57,.96),rgba(20,31,47,.96));
+      border: 1px solid rgba(139,175,214,.22);
+      border-radius: 10px;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      text-align: center; padding: 8px 6px;
+      box-shadow: 0 4px 18px rgba(5,12,22,.35);
+    }
+    .v-card .lbl { font-size: 10px; font-weight: 700; color: #8aaccc; text-transform: uppercase; letter-spacing: .04em; line-height: 1.2; }
+    .v-card .val { font-size: 26px; font-weight: 800; line-height: 1.1; margin-top: 4px; }
+    .v-card .sub { font-size: 10px; color: #6a8aaa; margin-top: 3px; }
+    .v-card.accent-teal { border-left: 4px solid #41b9a8; }
+    .v-card.accent-blue { border-left: 4px solid #5da8ff; }
+    .v-card.accent-amber{ border-left: 4px solid #e6a52e; }
+    .v-card.accent-red  { border-left: 4px solid #cf4336; }
+
+    /* Table panel */
+    .v-table {
+      position: absolute;
+      background: linear-gradient(180deg,rgba(22,36,54,.97),rgba(16,28,44,.97));
+      border: 1px solid rgba(139,175,214,.18);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .v-table table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .v-table thead th { background: rgba(26,42,62,.98); padding: 5px 7px; color: #8aaccc; font-weight: 700; text-align: left; border-bottom: 1px solid rgba(139,175,214,.18); font-size: 10px; text-transform: uppercase; position: sticky; top: 0; }
+    .v-table tbody td { padding: 4px 7px; color: #d0dce8; border-bottom: 1px solid rgba(113,144,186,.08); }
+    .v-table tbody tr:hover td { background: rgba(40,77,124,.28); }
+    .v-table .tbl-scroll { overflow-y: auto; max-height: 660px; }
+
+    /* Slicers */
+    .v-slicer {
+      position: absolute;
+      background: rgba(22,36,54,.9);
+      border: 1px solid rgba(139,175,214,.18);
+      border-radius: 8px;
+      padding: 6px;
+      overflow-y: auto;
+    }
+    .v-slicer .slicer-title { font-size: 9px; font-weight: 700; color: #6a8aaa; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+    .v-slicer label { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #b4c0d0; padding: 2px 0; cursor: pointer; }
+    .v-slicer label:hover { color: #f1f5fb; }
+    .v-slicer input[type=checkbox] { accent-color: #5da8ff; width: 11px; height: 11px; }
+
+    /* Rain badge pill */
+    .rain-pill {
+      display: inline-block; padding: 1px 6px; border-radius: 999px;
+      font-size: 9px; font-weight: 700; color: #fff;
+    }
+    .cat-zero    { background: #1a2a3a; color: #4a6080; }
+    .cat-trace   { background: #fbe99c; color: #1a1a00; }
+    .cat-light   { background: #6ed7f7; color: #003a4a; }
+    .cat-mod     { background: #e77946; color: #ffffff; }
+    .cat-heavy   { background: #f5403b; color: #ffffff; }
+    .cat-extreme { background: #b0001e; color: #ffffff; }
+  </style>
+</head>
+<body style="margin:0;overflow:hidden;">
+
+<div class="pbi-canvas" id="canvas">
+
+  <!-- Header -->
+  <div class="pbi-header">
+    <a class="pbi-header-back" href="../index.html">&#8592;</a>
+    <div class="pbi-header-title">RainWise — Summary KPIs</div>
+    <div class="pbi-header-sub">COH Wastewater System</div>
+    <div class="pbi-header-date" id="headerDate"></div>
+  </div>
+
+  <!-- Main table: x=0 y=0 w=960 h=720 (offset for header) -->
+  <div class="v-table" style="left:0;top:44px;width:960px;height:676px;">
+    <div class="tbl-scroll">
+      <table id="mainTable">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Gage</th>
+            <th>Location</th>
+            <th>Rain (in)</th>
+            <th>Category</th>
+            <th>Prev Day (in)</th>
+            <th>2-Day (in)</th>
+            <th>Year-Mon</th>
+          </tr>
+        </thead>
+        <tbody id="mainTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- KPI Card: x=968 y=0 w=168 h=136 → top-left of right panel -->
+  <div class="v-card accent-teal" style="left:968px;top:52px;width:164px;height:88px;" id="card-records">
+    <div class="lbl">Total Records</div>
+    <div class="val" id="val-records">—</div>
+    <div class="sub">Date-Gage combos</div>
+  </div>
+
+  <!-- KPI Card: x=968 y=144 w=168 h=80 -->
+  <div class="v-card accent-blue" style="left:968px;top:148px;width:164px;height:72px;" id="card-gages">
+    <div class="lbl">Active Gages</div>
+    <div class="val" id="val-gages">—</div>
+    <div class="sub">HCFCD network</div>
+  </div>
+
+  <!-- KPI Card: x=968 y=232 w=168 h=80 -->
+  <div class="v-card accent-amber" style="left:968px;top:228px;width:164px;height:72px;" id="card-rainy">
+    <div class="lbl">Rainy Days</div>
+    <div class="val" id="val-rainy">—</div>
+    <div class="sub">Days with rain &gt; 0</div>
+  </div>
+
+  <!-- KPI Card: x=968 y=320 w=168 h=80 -->
+  <div class="v-card accent-teal" style="left:968px;top:308px;width:164px;height:72px;" id="card-heavy">
+    <div class="lbl">Heavy Rain Days</div>
+    <div class="val" id="val-heavy">—</div>
+    <div class="sub">Over 1 in any gage</div>
+  </div>
+
+  <!-- KPI Card: x=968 y=440 w=168 h=136 -->
+  <div class="v-card accent-red" style="left:968px;top:388px;width:164px;height:100px;" id="card-sso">
+    <div class="lbl">WW SSO Events</div>
+    <div class="val" id="val-sso">—</div>
+    <div class="sub">Wet weather + public</div>
+  </div>
+
+  <!-- KPI Card: x=968 y=584 w=168 h=136 -->
+  <div class="v-card accent-amber" style="left:968px;top:496px;width:164px;height:100px;" id="card-basins">
+    <div class="lbl">Basins Monitored</div>
+    <div class="val" id="val-basins">—</div>
+    <div class="sub">Unique SSO basins</div>
+  </div>
+
+  <!-- KPI Card: x=1136 y=0 w=144 h=96 -->
+  <div class="v-card accent-teal" style="left:1136px;top:52px;width:136px;height:80px;" id="card-startdate">
+    <div class="lbl">Data Start</div>
+    <div class="val" style="font-size:14px;" id="val-startdate">—</div>
+    <div class="sub">Earliest record</div>
+  </div>
+
+  <!-- KPI Card: x=1136 y=104 w=144 h=96 -->
+  <div class="v-card accent-blue" style="left:1136px;top:140px;width:136px;height:80px;" id="card-enddate">
+    <div class="lbl">Data Through</div>
+    <div class="val" style="font-size:14px;" id="val-enddate">—</div>
+    <div class="sub">Latest record</div>
+  </div>
+
+  <!-- Slicer 1: x=1136 y=208 w=144 h=264 — Year-Mon filter -->
+  <div class="v-slicer" style="left:1136px;top:228px;width:136px;height:200px;" id="slicer-ym">
+    <div class="slicer-title">Year-Mon</div>
+    <div id="slicer-ym-items"></div>
+  </div>
+
+  <!-- Slicer 2: x=1136 y=480 w=144 h=240 — Gage filter -->
+  <div class="v-slicer" style="left:1136px;top:436px;width:136px;height:240px;" id="slicer-gage">
+    <div class="slicer-title">Raingage</div>
+    <div id="slicer-gage-items"></div>
+  </div>
+
+</div><!-- /.pbi-canvas -->
+
+<script>
+Components.applyChartDefaults();
+
+const data = window.MOCK.Realtime_rainfall_hcfcd_daily;
+const gages = window.MOCK.RainGauge_HCFCD;
+const sso   = window.MOCK.vt_WW_SSO_Lisa;
+const gageMap = {};
+gages.forEach(g => { gageMap[g.Raingage] = g; });
+
+// State
+let filterGage = null;
+let filterYM   = null;
+
+function catClass(cat) {
+  if (!cat || cat === 'Zero Rain') return 'cat-zero';
+  if (cat === '<0.3 in')     return 'cat-trace';
+  if (cat === '0.3-1.0 in')  return 'cat-light';
+  if (cat === '1.0-3.0 in')  return 'cat-mod';
+  if (cat === '3.0-5.0 in')  return 'cat-heavy';
+  return 'cat-extreme';
+}
+
+function render() {
+  let d = data;
+  if (filterGage) d = d.filter(r => r.Gage === filterGage);
+  if (filterYM)   d = d.filter(r => r.Year_Mon === filterYM);
+
+  // KPIs
+  document.getElementById('val-records').textContent = d.length.toLocaleString();
+  document.getElementById('val-gages').textContent   = new Set(d.map(r=>r.Gage)).size;
+  const rainyDates = new Set(d.filter(r=>r.rain>0).map(r=>r.Date));
+  document.getElementById('val-rainy').textContent   = rainyDates.size.toLocaleString();
+  const heavyDates = new Set(d.filter(r=>r.rain>1.0).map(r=>r.Date));
+  document.getElementById('val-heavy').textContent   = heavyDates.size.toLocaleString();
+  document.getElementById('val-sso').textContent     = sso.length;
+  document.getElementById('val-basins').textContent  = new Set(sso.map(s=>s.Basin)).size;
+
+  const dates = d.map(r=>r.Date).sort();
+  document.getElementById('val-startdate').textContent = dates[0]?.slice(0,7) || '—';
+  document.getElementById('val-enddate').textContent   = dates[dates.length-1]?.slice(0,7) || '—';
+
+  // Table — most recent 300 rows
+  const recent = [...d].sort((a,b)=>b.Date.localeCompare(a.Date)).slice(0,300);
+  const tbody = document.getElementById('mainTableBody');
+  tbody.innerHTML = recent.map(r => {
+    const loc = gageMap[r.Gage]?.LOCATION || '';
+    return `<tr>
+      <td>${r.Date}</td>
+      <td>${r.Gage}</td>
+      <td style="color:#8aaccc;font-size:10px;">${loc}</td>
+      <td style="color:${r.rain > 0 ? '#6fd9cb' : '#4a5568'};font-weight:${r.rain>1?'700':'400'}">${r.rain.toFixed(2)}</td>
+      <td><span class="rain-pill ${catClass(r.Event_Category)}">${r.Event_Category}</span></td>
+      <td style="color:#b4c0d0">${r.Rain_PreviousDay.toFixed(2)}</td>
+      <td style="color:${r.Rain_SSO_PrevDay>1?'#e6a52e':'#b4c0d0'};font-weight:${r.Rain_SSO_PrevDay>3?'700':'400'}">${r.Rain_SSO_PrevDay.toFixed(2)}</td>
+      <td style="color:#6a8aaa">${r.Year_Mon}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Slicers
+const allYMs = [...new Set(data.map(r=>r.Year_Mon))].sort().reverse();
+const ymItems = document.getElementById('slicer-ym-items');
+allYMs.slice(0, 24).forEach(ym => {
+  const lbl = document.createElement('label');
+  lbl.innerHTML = `<input type="checkbox" value="${ym}"> ${ym}`;
+  lbl.querySelector('input').addEventListener('change', e => {
+    filterYM = e.target.checked ? ym : null;
+    ymItems.querySelectorAll('input').forEach(i => { if(i.value !== ym) i.checked = false; });
+    render();
+  });
+  ymItems.appendChild(lbl);
+});
+
+const gageItems = document.getElementById('slicer-gage-items');
+gages.forEach(g => {
+  const lbl = document.createElement('label');
+  lbl.innerHTML = `<input type="checkbox" value="${g.Raingage}"> ${g.Raingage}`;
+  lbl.querySelector('input').addEventListener('change', e => {
+    filterGage = e.target.checked ? +g.Raingage : null;
+    gageItems.querySelectorAll('input').forEach(i => { if(i.value != g.Raingage) i.checked = false; });
+    render();
+  });
+  gageItems.appendChild(lbl);
+});
+
+// Header date
+document.getElementById('headerDate').textContent = 'Last Update: ' + (window.MOCK.Refresh_DateTime?.Date || '—');
+
+render();
+Components.initPageScale();
+</script>
+</body>
+</html>
