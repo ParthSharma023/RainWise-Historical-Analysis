@@ -28,13 +28,66 @@
 
 ## Drive & Path Mappings
 
-Known mappings between SharePoint/network paths in the Power BI model and local E: drive locations.
+`\\10.120.148.123\hwDataLakeWWIP_s3` = `E:\` (root of E: drive)
 
 | SharePoint / Network Path | Local E: Drive Path | Status |
 |---|---|---|
 | `houtx.sharepoint.com/sites/Ready-to-ConsumeDataWarehouse/Shared Documents/General/GIS Database/` | `E:\landing\GIS Database` | Confirmed |
 | `houtx.sharepoint.com/sites/HWiP-WWO/Shared Documents/WW_Reg_Compliance/SSO_Tracking/` | Unknown | Not yet mapped |
-| `\\10.120.148.123\hwDataLakeWWIP_s3\DaaP\Rain_Frequency\rain_gauge_frequency\all_rain_gauge_frequency.csv` | Unknown | Network share — used by Combined_Rain and Combined_Frequency tables |
+| `\\10.120.148.123\hwDataLakeWWIP_s3\DaaP\Rain_Frequency\rain_gauge_frequency\all_rain_gauge_frequency.csv` | `E:\DaaP\Rain_Frequency\rain_gauge_frequency\all_rain_gauge_frequency.csv` | Confirmed (network share = E:) |
+
+---
+
+## All PBI Project Data Sources
+
+### 1. RainWise Smart Rainfall Intelligence (COH-Wastewater)
+
+| Table | Source Type | Connection |
+|---|---|---|
+| `RainGauge_HCFCD` | SharePoint CSV | `houtx.sharepoint.com/sites/Ready-to-ConsumeDataWarehouse/.../GIS Database/02_Boundaries/Other/RainGauge_Poly.csv` → `E:\landing\GIS Database\02_Boundaries\Other\RainGauge_Poly.csv` |
+| `SSO_Data_Lisa(SharePoint)` | SharePoint Excel | `houtx.sharepoint.com/sites/HWiP-WWO/.../SSO_Tracking/SSO Table and Data - Combined ETS and Infor.xlsx` (sheet: "2001- Present SSO Data") |
+| `Realtime_rainfall_hcfcd_daily` | Power Platform Dataflow | Workspace `597882e1-04dd-4e9b-bf59-bceae3a2043b`, Dataflow `0c240939-43e1-4da0-ab44-5167bc62aef1`, entity `wwip_rainfall_1_day` |
+| `Combined_Rain` | CSV on E: | `E:\DaaP\Rain_Frequency\rain_gauge_frequency\all_rain_gauge_frequency.csv` (rows where Attribute contains `"max_value"`) |
+| `Combined_Frequency` | CSV on E: | Same CSV as Combined_Rain (rows where Attribute contains `"return_frequency"`) |
+| `vt_WW-SSO_Lisa` | Calculated table | DAX filter on `SSO_Data_Lisa(SharePoint)` — wet weather + public excursions only |
+
+### 2. Data Quality Tracker - USCubed
+
+All sources are Parquet file folders on `E:\processed\`:
+
+| Table | Path |
+|---|---|
+| `wwip_api_smartcover_site_metadata` | `E:\processed\api_vendors\smartcover\wwip_api_smartcover_site_metadata` |
+| `wwip_api_smartcover` | `E:\processed\api_vendors\smartcover\wwip_api_smartcover` |
+| `wwip_api_uscubed_site_metadata` | `E:\processed\api_vendors\uscubed\wwip_api_uscubed_site_metadata` |
+| `wwip_api_uscubed` | `E:\processed\api_vendors\uscubed\wwip_api_uscubed` |
+| `wwip_uscubed_api_and_historical` | `E:\processed\api_vendors\uscubed\wwip_uscubed_api_and_historical` |
+| `wwip_levelmeter_data_unified` | `E:\processed\api_vendors\levelmeter_unified\wwip_levelmeter_data_unified` |
+| `dqr_us_cubed_detailed_diagnostics` | `E:\processed\data_quaility_checker\dqr_us_cubed_detailed_diagnostics` |
+| `dqr_us_cubed_weekly_quality` | `E:\processed\data_quaility_checker\dqr_us_cubed_weekly_quality` |
+| `dqr_us_cubed_maintenance_schedule` | `E:\processed\data_quaility_checker\dqr_us_cubed_maintenance_schedule` |
+| `dqr_us_cubed_maintenance_reports` | `E:\processed\data_quaility_checker\dqr_us_cubed_maintenance_reports` |
+| `dqr_us_cubed_maintenance_reports_enriched` | `E:\processed\data_quaility_checker\dqr_us_cubed_maintenance_reports_enriched` |
+
+### 3. Data Quality Tracker - SmartCover
+
+All sources are Parquet file folders on `E:\processed\`:
+
+| Table | Path |
+|---|---|
+| `wwip_api_smartcover_site_metadata` | `E:\processed\api_vendors\smartcover\wwip_api_smartcover_site_metadata` |
+| `wwip_api_smartcover` | `E:\processed\api_vendors\smartcover\wwip_api_smartcover` |
+
+### 4. Data Quality Tracker - ADS
+
+All sources are Parquet file folders on `E:\processed\`:
+
+| Table | Path |
+|---|---|
+| `wwip_api_smartcover_site_metadata` | `E:\processed\api_vendors\smartcover\wwip_api_smartcover_site_metadata` |
+| `wwip_api_smartcover` | `E:\processed\api_vendors\smartcover\wwip_api_smartcover` |
+| `wwip_api_ads` | `E:\processed\api_vendors\ads\wwip_api_ads` |
+| `wwip_api_ads_site_metadata` | `E:\processed\api_vendors\ads\wwip_api_ads_site_metadata` |
 
 ---
 
