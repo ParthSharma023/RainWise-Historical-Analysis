@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Historical Rainfall Events &amp; Frequency — RainWise</title>
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    html,
+    body {
+      min-height: 100%;
+    }
+    body {
+      min-width: 1280px;
+      overflow: hidden;
+    }
+    .page-shell {
+      width: 100vw;
+      min-width: 1280px;
+      height: 100vh;
+      min-height: 720px;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      background: rgba(8, 18, 29, 0.92);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .pbi-header {
+      flex-shrink: 0;
+      width: 100%;
+      min-height: 64px;
+      background: linear-gradient(90deg, #1a4a6e 0%, #0e2a42 100%);
+      border-bottom: 2px solid #2d7ab0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      overflow: visible;
+      position: relative;
+      z-index: 3000;
+      isolation: isolate;
+    }
+    .pbi-header-back {
+      color: #5da8ff;
+      text-decoration: none;
+      font-size: 18px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .page-title {
+      display: flex;
+      align-items: center;
+      padding-right: 14px;
+      border-right: 1px solid rgba(185, 220, 244, 0.28);
+      color: #f4f9fe;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0 6px 4px;
+      flex: 1;
+      min-width: 0;
+    }
+    .ctrl {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 4px 6px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(139,175,214,0.22);
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+    .ctrl-label {
+      color: #6a8aaa;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .ctrl select,
+    .ctrl input {
+      width: 100%;
+      height: 22px;
+      border: none;
+      border-radius: 4px;
+      background: rgba(12,21,34,0.8);
+      color: #f1f5fb;
+      font-size: 11px;
+      padding: 0 8px;
+      outline: none;
+      box-shadow: none;
+    }
+    .ctrl select {
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image:
+        linear-gradient(45deg, transparent 50%, #6a8aaa 50%),
+        linear-gradient(135deg, #6a8aaa 50%, transparent 50%);
+      background-position:
+        calc(100% - 12px) 9px,
+        calc(100% - 7px) 9px;
+      background-size: 5px 5px, 5px 5px;
+      background-repeat: no-repeat;
+      padding-right: 22px;
+    }
+    .ctrl select:hover,
+    .ctrl input:hover,
+    .ctrl select:focus,
+    .ctrl input:focus {
+      background-color: rgba(15,27,44,0.92);
+    }
+    .range-ctrl {
+      width: 228px;
+    }
+    .range-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .range-row input {
+      text-align: left;
+    }
+    .ctrl.compact {
+      width: 120px;
+    }
+    .ctrl.medium {
+      width: 136px;
+    }
+    .ctrl.wide {
+      width: 152px;
+    }
+
+    .main-grid {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 352px 1fr 120px;
+      gap: 10px;
+      padding: 10px;
+      background: linear-gradient(180deg, rgba(13,24,38,0.9), rgba(9,18,29,0.96));
+    }
+    .main-grid > .table-panel {
+      grid-column: 1;
+      grid-row: 1;
+      margin-top: 0;
+    }
+    .main-grid > .map-panel {
+      grid-column: 2;
+      grid-row: 1;
+      min-height: 0;
+    }
+    .main-grid > .slicer-panel {
+      grid-column: 3;
+      grid-row: 1;
+    }
+    .table-panel,
+    .map-panel,
+    .slicer-panel {
+      padding: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(180deg, rgba(26, 39, 57, 0.96), rgba(20, 31, 47, 0.96));
+      border: 1px solid var(--border);
+      border-radius: 0;
+      box-shadow: none;
+      overflow: hidden;
+    }
+    .table-wrap {
+      flex: 1;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      border-radius: 0;
+      background: #122235;
+      scrollbar-color: rgba(106,138,170,0.9) rgba(18,30,48,0.18);
+      scrollbar-width: thin;
+    }
+    .events-table {
+      width: 100%;
+      min-width: 0;
+      table-layout: fixed;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 12px;
+      color: #e7f0f8;
+      background: #122235;
+      white-space: nowrap;
+    }
+    .events-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      padding: 9px 6px;
+      background: #0f6785;
+      color: #eff7ff;
+      font-size: 11px;
+      text-align: left;
+      border-bottom: 1px solid rgba(86, 126, 159, 0.28);
+    }
+    .events-table thead th:nth-child(1),
+    .events-table tbody td:nth-child(1) {
+      width: 31%;
+    }
+    .events-table thead th:nth-child(2),
+    .events-table tbody td:nth-child(2) {
+      width: 16%;
+    }
+    .events-table thead th:nth-child(3),
+    .events-table tbody td:nth-child(3) {
+      width: 19%;
+    }
+    .events-table thead th:nth-child(4),
+    .events-table tbody td:nth-child(4) {
+      width: 18%;
+    }
+    .events-table thead th:nth-child(5),
+    .events-table tbody td:nth-child(5) {
+      width: 16%;
+    }
+    .events-table tbody td {
+      padding: 5px 8px;
+      border-bottom: 1px solid rgba(122,156,199,0.2);
+      border-right: 1px solid rgba(122,156,199,0.18);
+      vertical-align: middle;
+      background: #203247;
+      color: #e7f0f8;
+    }
+    .events-table td.freq-cell,
+    .events-table td.rain-cell {
+      padding: 0;
+    }
+    .events-table tbody tr:nth-child(odd) td {
+      background: #203247;
+    }
+    .events-table tbody tr:nth-child(even) td {
+      background: #24384f;
+    }
+    .events-table tbody tr.is-active td {
+      box-shadow: inset 0 0 0 2px rgba(15,103,133,0.45);
+      background: #2a4560;
+    }
+    .events-table tbody tr {
+      cursor: pointer;
+    }
+    .events-table td.center {
+      text-align: center;
+    }
+    .events-table td.right {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .freq-pill,
+    .rain-pill {
+      display: block;
+      border-radius: 0;
+      padding: 6px 8px;
+      font-weight: 700;
+      text-align: right;
+      min-height: 31px;
+    }
+    .freq-pill.cat-black { background: #000000; color: #ffffff; }
+    .freq-pill.cat-red { background: #f8706c; color: #ffffff; }
+    .freq-pill.cat-yellow { background: #f6c907; color: #6d5200; }
+    .freq-pill.cat-green { background: #66d494; color: #008a3a; }
+    .rain-pill.rain-hi { background: #f8706c; color: #ffffff; }
+    .rain-pill.rain-med { background: #ffb36f; color: #5d3400; }
+    .rain-pill.rain-low { background: #ffe07c; color: #745700; }
+
+    .map-panel {
+      position: relative;
+      min-width: 0;
+    }
+    #freqMap {
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+    }
+    .leaflet-container {
+      background: #eef3f8;
+    }
+    .map-legend {
+      position: absolute;
+      top: 14px;
+      bottom: auto;
+      left: 14px;
+      right: auto;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      width: auto;
+      max-width: calc(100% - 28px);
+      background: rgba(16,28,44,0.92);
+      border: 1px solid rgba(139,175,214,0.24);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #d4e3ef;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.28);
+      pointer-events: none;
+    }
+    .legend-title {
+      font-weight: 700;
+      margin-right: 2px;
+    }
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .legend-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.18);
+      flex-shrink: 0;
+    }
+    .pie-marker {
+      background: none !important;
+      border: none !important;
+    }
+    .pie-marker svg path,
+    .pie-marker svg circle[data-gage] {
+      cursor: pointer;
+      pointer-events: fill;
+    }
+    .pie-marker svg path:hover,
+    .pie-marker svg circle[data-gage]:hover {
+      opacity: 0.92;
+    }
+
+    .slicer-panel {
+      padding: 14px 12px;
+    }
+    .slicer-title {
+      color: #d9e6f2;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      padding-left: 2px;
+    }
+    .gage-list {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      scrollbar-color: rgba(106,138,170,0.9) rgba(18,30,48,0.18);
+      scrollbar-width: thin;
+    }
+    .gage-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 2px;
+      color: #d9e6f2;
+      font-size: 14px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .gage-item.is-disabled {
+      color: #71879e;
+    }
+    .gage-box {
+      width: 24px;
+      height: 24px;
+      border: 2px solid rgba(139,175,214,0.28);
+      background: rgba(12,21,34,0.84);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 15px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .gage-item.is-unchecked .gage-box {
+      background: rgba(255,255,255,0.05);
+      color: transparent;
+    }
+    .gage-item.is-disabled .gage-box {
+      border-color: rgba(113,135,158,0.3);
+      background: rgba(113,135,158,0.16);
+    }
+    .gage-count {
+      display: none;
+    }
+    .panel-status {
+      padding: 18px;
+      color: #8aa9c7;
+      font-size: 13px;
+    }
+
+    .leaflet-control-zoom a {
+      background: rgba(255,255,255,0.94) !important;
+      color: #38516a !important;
+      border-color: rgba(80,105,130,0.25) !important;
+    }
+    .leaflet-control-zoom a:hover {
+      background: #ffffff !important;
+      color: #1f3650 !important;
+    }
+    .leaflet-control-attribution {
+      background: rgba(255,255,255,0.88) !important;
+      color: #5f6d7a !important;
+    }
+    .leaflet-control-attribution a {
+      color: #2669b2 !important;
+    }
+
+    @media (max-width: 1280px) {
+      .page-shell {
+        width: 100vw;
+        height: 100vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="pbi-header">
+      <a class="pbi-header-back" href="../index.html" aria-label="Back">&#8592;</a>
+      <div class="page-title">Rainfall Frequency by Raingage, 2002-Current</div>
+      <div class="header-controls">
+        <div class="ctrl range-ctrl">
+          <div class="ctrl-label">Rain, Inch</div>
+          <div class="range-row">
+            <input id="rainMinInput" type="number" step="0.01" inputmode="decimal">
+            <input id="rainMaxInput" type="number" step="0.01" inputmode="decimal">
+          </div>
+        </div>
+        <div class="ctrl compact">
+          <div class="ctrl-label">Duration</div>
+          <select id="durationSelect"></select>
+        </div>
+        <div class="ctrl medium">
+          <div class="ctrl-label">EVENT</div>
+          <select id="eventSelect"></select>
+        </div>
+        <div class="ctrl compact">
+          <div class="ctrl-label">Year</div>
+          <select id="yearSelect"></select>
+        </div>
+      </div>
+    </header>
+
+    <main class="main-grid">
+      <section class="panel table-panel">
+        <div class="table-wrap" id="tableWrap"></div>
+      </section>
+
+      <section class="panel map-panel">
+        <div class="map-legend" id="mapLegend"></div>
+        <div id="freqMap"></div>
+      </section>
+
+      <aside class="panel slicer-panel">
+        <div class="slicer-title">Raingage</div>
+        <div class="gage-list" id="gageList"></div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="../data/dims.js"></script>
+  <script src="../data/historical-frequency/meta.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+const HF = window.HF_META;
+const GAGES = (window.DIMS?.RainGauge_HCFCD || []).slice().sort((a, b) => a.Raingage - b.Raingage);
+const GAGE_MAP = new Map(GAGES.map(g => [g.Raingage, g]));
+const CAT_ORDER = ["<1_yr", "1-2_yr", "2-5_yr", ">5_yr"];
+const CAT_COLORS = {
+  "<1_yr": "#66d494",
+  "1-2_yr": "#f6c907",
+  "2-5_yr": "#f8706c",
+  ">5_yr": "#111111",
+};
+
+const state = {
+  year: String(HF.defaultYear),
+  duration: HF.defaultDuration,
+  event: "__all__",
+  rainMin: HF.defaultMinRain,
+  rainMax: HF.globalMaxRain,
+  selGages: new Set(),
+  mapSelection: null,
+};
+
+const parsedYearCache = new Map();
+const loadedYears = new Set();
+
+const yearSelect = document.getElementById("yearSelect");
+const durationSelect = document.getElementById("durationSelect");
+const eventSelect = document.getElementById("eventSelect");
+const rainMinInput = document.getElementById("rainMinInput");
+const rainMaxInput = document.getElementById("rainMaxInput");
+const tableWrap = document.getElementById("tableWrap");
+const gageList = document.getElementById("gageList");
+const mapLegend = document.getElementById("mapLegend");
+
+function formatDate(dateStr) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return `${month}/${day}/${year}`;
+}
+
+function formatNumber(value) {
+  return Number(value).toFixed(2);
+}
+
+function freqClass(cat) {
+  if (cat === ">5_yr") return "cat-black";
+  if (cat === "2-5_yr") return "cat-red";
+  if (cat === "1-2_yr") return "cat-yellow";
+  return "cat-green";
+}
+
+function rainClass(rain) {
+  if (rain >= 4.5) return "rain-hi";
+  if (rain >= 3.75) return "rain-hi";
+  if (rain >= 2.5) return "rain-med";
+  if (rain >= 1) return "rain-low";
+  return "";
+}
+
+function yearsToLoad() {
+  if (state.year === "__all__") return HF.years;
+  return [Number(state.year)];
+}
+
+function normalizeSelectionSet(availableGages) {
+  if (!state.selGages.size) return;
+  const available = new Set(availableGages.map(String));
+  state.selGages = new Set([...state.selGages].filter(g => available.has(g)));
+  if (state.selGages.size === available.size) state.selGages.clear();
+}
+
+function loadYearScript(year) {
+  if (loadedYears.has(year)) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = `../data/historical-frequency/hf_${year}.js`;
+    script.onload = function () {
+      loadedYears.add(year);
+      resolve();
+    };
+    script.onerror = function () {
+      reject(new Error(`Failed to load data for ${year}`));
+    };
+    document.body.appendChild(script);
+  });
+}
+
+async function ensureYearsLoaded(years) {
+  await Promise.all(years.map(loadYearScript));
+}
+
+function getParsedYearRows(year) {
+  if (parsedYearCache.has(year)) return parsedYearCache.get(year);
+  const raw = window.HF_YEAR_DATA?.[year] || [];
+  const parsed = raw.map(([date, duration, gage, frequency, rain, freqCat]) => ({
+    date,
+    duration,
+    gage: Number(gage),
+    frequency: frequency == null ? null : Number(frequency),
+    rain: rain == null ? null : Number(rain),
+    freqCat,
+  }));
+  parsedYearCache.set(year, parsed);
+  return parsed;
+}
+
+async function getBaseRows() {
+  const years = yearsToLoad();
+  await ensureYearsLoaded(years);
+  return years.flatMap(getParsedYearRows);
+}
+
+function matchesTopFilters(row, opts = {}) {
+  if (!row.freqCat) return false;
+  if (state.duration !== "__all__" && row.duration !== state.duration) return false;
+  if (!opts.ignoreEvent && state.event !== "__all__" && row.date !== state.event) return false;
+  if (row.rain == null || row.rain < state.rainMin || row.rain > state.rainMax) return false;
+  if (!opts.ignoreGage && state.selGages.size && !state.selGages.has(String(row.gage))) return false;
+  return true;
+}
+
+function applyMapSelection(rows) {
+  if (!state.mapSelection) return rows;
+  return rows.filter(row => row.gage === state.mapSelection.gage && (!state.mapSelection.cat || row.freqCat === state.mapSelection.cat));
+}
+
+function buildEventOptions(baseRows) {
+  const dates = [...new Set(baseRows.filter(row => matchesTopFilters(row, { ignoreEvent: true })).map(row => row.date))]
+    .sort((a, b) => b.localeCompare(a));
+  const current = state.event;
+
+  eventSelect.innerHTML = "";
+  const allOpt = document.createElement("option");
+  allOpt.value = "__all__";
+  allOpt.textContent = "All";
+  eventSelect.appendChild(allOpt);
+
+  dates.forEach(date => {
+    const opt = document.createElement("option");
+    opt.value = date;
+    opt.textContent = formatDate(date);
+    eventSelect.appendChild(opt);
+  });
+
+  state.event = dates.includes(current) || current === "__all__" ? current : "__all__";
+  eventSelect.value = state.event;
+}
+
+function buildGageOptions(baseRows) {
+  const availableCounts = new Map();
+  baseRows.forEach(row => {
+    if (!matchesTopFilters(row, { ignoreGage: true })) return;
+    availableCounts.set(row.gage, (availableCounts.get(row.gage) || 0) + 1);
+  });
+
+  normalizeSelectionSet([...availableCounts.keys()]);
+
+  const allChecked = state.selGages.size === 0;
+  const items = [];
+  items.push(renderGageItem("Select all", "__all__", allChecked, true, null, false));
+
+  GAGES.forEach(gage => {
+    const count = availableCounts.get(gage.Raingage) || 0;
+    const checked = allChecked || state.selGages.has(String(gage.Raingage));
+    items.push(renderGageItem(String(gage.Raingage), String(gage.Raingage), checked, false, count, count === 0));
+  });
+
+  gageList.innerHTML = items.join("");
+}
+
+function renderGageItem(label, value, checked, isAll, count, disabled) {
+  const classes = [
+    "gage-item",
+    checked ? "" : "is-unchecked",
+    disabled ? "is-disabled" : "",
+  ].filter(Boolean).join(" ");
+  return `<label class="${classes}" data-gage="${value}">
+    <span class="gage-box">${checked ? "&#10003;" : ""}</span>
+    <span>${label}</span>
+    ${count == null ? "" : `<span class="gage-count">${count}</span>`}
+  </label>`;
+}
+
+function renderTable(rows) {
+  const sorted = rows.slice().sort((a, b) => {
+    if (b.rain !== a.rain) return b.rain - a.rain;
+    const bf = b.frequency == null ? -1 : b.frequency;
+    const af = a.frequency == null ? -1 : a.frequency;
+    if (bf !== af) return bf - af;
+    return b.date.localeCompare(a.date);
+  });
+
+  if (!sorted.length) {
+    tableWrap.innerHTML = '<div class="panel-status">No rainfall events match the current filters.</div>';
+    return;
+  }
+
+  const rowsHtml = sorted.map(row => {
+    const active = state.mapSelection && row.gage === state.mapSelection.gage && (!state.mapSelection.cat || row.freqCat === state.mapSelection.cat);
+    const freqText = row.frequency == null ? "" : formatNumber(row.frequency);
+    return `<tr class="${active ? "is-active" : ""}" data-date="${row.date}" data-gage="${row.gage}" data-cat="${row.freqCat || ""}">
+      <td>${formatDate(row.date)}</td>
+      <td class="center">${row.duration}</td>
+      <td class="right">${row.gage}</td>
+      <td class="right freq-cell"><span class="freq-pill ${row.freqCat ? freqClass(row.freqCat) : ""}">${freqText}</span></td>
+      <td class="right rain-cell"><span class="rain-pill ${rainClass(row.rain)}">${formatNumber(row.rain)}</span></td>
+    </tr>`;
+  }).join("");
+
+  tableWrap.innerHTML = `
+    <table class="events-table">
+      <thead>
+        <tr>
+          <th>EVENT</th>
+          <th>Duration</th>
+          <th>Raingage</th>
+          <th>Frequency</th>
+          <th>Rain</th>
+        </tr>
+      </thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>`;
+}
+
+const map = L.map("freqMap", {
+  center: [30.029703204168648, -95.39516486314587],
+  zoom: 10,
+  zoomControl: true,
+  attributionControl: true,
+  fadeAnimation: false,
+});
+
+L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+  attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+  maxZoom: 18,
+}).addTo(map);
+
+const markerLayer = L.layerGroup().addTo(map);
+
+function pieSvg(gageId, entries, selected) {
+  const radius = selected ? 18 : 16;
+  const labelH = 16;
+  const cx = radius + 1;
+  const cy = labelH + radius + 1;
+  const svgW = (radius + 1) * 2;
+  const svgH = labelH + svgW;
+  let angle = -Math.PI / 2;
+  let parts = "";
+
+  if (entries.length === 1) {
+    const entry = entries[0];
+    parts += `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="${CAT_COLORS[entry.cat]}" stroke="${selected ? "#ffffff" : "rgba(0,0,0,0.2)"}" stroke-width="${selected ? "2.4" : "0.9"}" data-gage="${gageId}" data-cat="${entry.cat}"/>`;
+  } else {
+    entries.forEach(entry => {
+      const sweep = (2 * Math.PI) / entries.length;
+      const x1 = cx + radius * Math.cos(angle);
+      const y1 = cy + radius * Math.sin(angle);
+      const end = angle + sweep;
+      const x2 = cx + radius * Math.cos(end);
+      const y2 = cy + radius * Math.sin(end);
+      const lg = sweep > Math.PI ? 1 : 0;
+      const isCatSelected = selected && state.mapSelection && state.mapSelection.cat === entry.cat;
+      parts += `<path d="M${cx},${cy}L${x1.toFixed(2)},${y1.toFixed(2)}A${radius},${radius} 0 ${lg},1 ${x2.toFixed(2)},${y2.toFixed(2)}Z" fill="${CAT_COLORS[entry.cat]}" stroke="${isCatSelected ? "#ffffff" : "rgba(0,0,0,0.2)"}" stroke-width="${isCatSelected ? "2.4" : "0.9"}" data-gage="${gageId}" data-cat="${entry.cat}"/>`;
+      angle = end;
+    });
+  }
+
+  const label = String(gageId);
+  const labelW = Math.max(34, 10 + label.length * 7);
+  const labelX = cx - labelW / 2;
+  parts += `<rect x="${labelX}" y="0.5" rx="5" ry="5" width="${labelW}" height="14" fill="rgba(90,90,90,0.82)" stroke="rgba(255,255,255,0.25)" stroke-width="0.6" pointer-events="none"/>`;
+  parts += `<text x="${cx}" y="10" text-anchor="middle" font-size="8.5" font-weight="700" fill="#ffffff" font-family="Arial,sans-serif" pointer-events="none">${gageId}</text>`;
+
+  return `<svg width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg" data-gage-root="${gageId}" style="overflow:visible;">${parts}</svg>`;
+}
+
+let _pieTip = null;
+function showPieTip(event, gageId, cat, lat, lon) {
+  if (!_pieTip) {
+    _pieTip = document.createElement("div");
+    _pieTip.style.cssText = "position:fixed;z-index:9999;pointer-events:none;background:rgba(16,28,44,0.96);border:1px solid rgba(139,175,214,0.3);border-radius:8px;padding:8px 12px;font-size:11px;color:#f1f5fb;box-shadow:0 4px 18px rgba(0,0,0,0.5);line-height:1.8;white-space:nowrap;";
+    document.body.appendChild(_pieTip);
+  }
+  _pieTip.innerHTML =
+    `<div style="font-weight:700;color:#5da8ff;font-size:13px;margin-bottom:2px;">Gage ${gageId}</div>` +
+    `<div><span style="color:#8aaccc;">Frequency Category</span> &nbsp;<b>${cat}</b></div>` +
+    `<div><span style="color:#8aaccc;">Average of LATITUDE</span> &nbsp;${Number(lat).toFixed(4)}</div>` +
+    `<div><span style="color:#8aaccc;">Average of LONGITUDE</span> &nbsp;${Number(lon).toFixed(4)}</div>`;
+  _pieTip.style.left = (event.clientX + 14) + "px";
+  _pieTip.style.top = (event.clientY - 10) + "px";
+  _pieTip.style.display = "block";
+}
+
+function hidePieTip() {
+  if (_pieTip) _pieTip.style.display = "none";
+}
+
+function renderMap(rows) {
+  markerLayer.clearLayers();
+
+  const grouped = new Map();
+  rows.forEach(row => {
+    const gageInfo = GAGE_MAP.get(row.gage);
+    if (!gageInfo || gageInfo.LATITUDE == null || gageInfo.LONGITUDE == null) return;
+    let entry = grouped.get(row.gage);
+    if (!entry) {
+      entry = { gage: row.gage, lat: gageInfo.LATITUDE, lon: gageInfo.LONGITUDE, counts: new Map() };
+      grouped.set(row.gage, entry);
+    }
+    entry.counts.set(row.freqCat, (entry.counts.get(row.freqCat) || 0) + 1);
+  });
+
+  grouped.forEach(entry => {
+    const pieEntries = CAT_ORDER.filter(cat => entry.counts.has(cat)).map(cat => ({ cat, count: entry.counts.get(cat) }));
+    const selected = state.mapSelection && state.mapSelection.gage === entry.gage;
+    const icon = L.divIcon({
+      html: pieSvg(entry.gage, pieEntries, selected),
+      className: "pie-marker",
+      iconSize: [40, 52],
+      iconAnchor: [20, 34],
+    });
+    L.marker([entry.lat, entry.lon], { icon }).addTo(markerLayer);
+  });
+
+  mapLegend.innerHTML =
+    `<span class="legend-title">Frequency Category</span>` +
+    CAT_ORDER.map(cat => `<span class="legend-item"><span class="legend-dot" style="background:${CAT_COLORS[cat]};"></span>${cat}</span>`).join("");
+}
+
+function renderLoading(message) {
+  tableWrap.innerHTML = `<div class="panel-status">${message}</div>`;
+  gageList.innerHTML = "";
+  markerLayer.clearLayers();
+}
+
+async function render() {
+  renderLoading("Loading historical rainfall frequency data...");
+  const baseRows = await getBaseRows();
+  buildEventOptions(baseRows);
+  buildGageOptions(baseRows);
+
+  let filtered = baseRows.filter(row => matchesTopFilters(row));
+  if (state.mapSelection && !filtered.some(row => row.gage === state.mapSelection.gage && (!state.mapSelection.cat || row.freqCat === state.mapSelection.cat))) {
+    state.mapSelection = null;
+  }
+  filtered = applyMapSelection(filtered);
+
+  renderTable(filtered);
+  renderMap(filtered);
+}
+
+function populateStaticControls() {
+  durationSelect.innerHTML = '<option value="__all__">All</option>' + HF.durations.map(duration => `<option value="${duration}">${duration}</option>`).join("");
+  durationSelect.value = state.duration;
+
+  yearSelect.innerHTML = '<option value="__all__">All</option>' + HF.years.slice().sort((a, b) => b - a).map(year => `<option value="${year}">${year}</option>`).join("");
+  yearSelect.value = state.year;
+
+  rainMinInput.value = state.rainMin.toFixed(2);
+  rainMaxInput.value = HF.globalMaxRain.toFixed(2);
+}
+
+durationSelect.addEventListener("change", () => {
+  state.duration = durationSelect.value;
+  state.mapSelection = null;
+  render();
+});
+
+yearSelect.addEventListener("change", () => {
+  state.year = yearSelect.value;
+  state.event = "__all__";
+  state.mapSelection = null;
+  render();
+});
+
+eventSelect.addEventListener("change", () => {
+  state.event = eventSelect.value;
+  state.mapSelection = null;
+  render();
+});
+
+function updateRainValue(input, which) {
+  const fallback = which === "min" ? HF.defaultMinRain : HF.globalMaxRain;
+  let value = Number(input.value);
+  if (!Number.isFinite(value)) value = fallback;
+  value = Math.max(HF.globalMinRain, Math.min(HF.globalMaxRain, value));
+  if (which === "min") {
+    state.rainMin = Math.min(value, state.rainMax);
+    input.value = state.rainMin.toFixed(2);
+  } else {
+    state.rainMax = Math.max(value, state.rainMin);
+    input.value = state.rainMax.toFixed(2);
+  }
+  state.mapSelection = null;
+  render();
+}
+
+rainMinInput.addEventListener("change", () => updateRainValue(rainMinInput, "min"));
+rainMaxInput.addEventListener("change", () => updateRainValue(rainMaxInput, "max"));
+
+gageList.addEventListener("click", (event) => {
+  const item = event.target.closest(".gage-item");
+  if (!item || item.classList.contains("is-disabled")) return;
+  const gage = item.getAttribute("data-gage");
+  if (gage === "__all__") {
+    state.selGages.clear();
+  } else if (!state.selGages.size) {
+    state.selGages = new Set([gage]);
+  } else if (state.selGages.has(gage)) {
+    state.selGages.delete(gage);
+    if (!state.selGages.size) state.selGages.clear();
+  } else {
+    state.selGages.add(gage);
+  }
+  state.mapSelection = null;
+  render();
+});
+
+tableWrap.addEventListener("click", (event) => {
+  const row = event.target.closest("tr[data-gage]");
+  if (!row) return;
+  const gage = Number(row.getAttribute("data-gage"));
+  const cat = row.getAttribute("data-cat") || null;
+  if (state.mapSelection && state.mapSelection.gage === gage && state.mapSelection.cat === cat) state.mapSelection = null;
+  else state.mapSelection = { gage, cat };
+  render();
+});
+
+map.on("click", function () {
+  if (state.mapSelection) {
+    state.mapSelection = null;
+    render();
+  }
+});
+
+map.getPanes().markerPane.addEventListener("click", function (event) {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  const cat = target.getAttribute("data-cat");
+  const gage = Number(target.getAttribute("data-gage"));
+  if (!cat || !gage) return;
+  L.DomEvent.stopPropagation(event);
+  if (state.mapSelection && state.mapSelection.gage === gage && state.mapSelection.cat === cat) state.mapSelection = null;
+  else state.mapSelection = { gage, cat };
+  render();
+});
+
+map.getPanes().markerPane.addEventListener("mousemove", function (event) {
+  const target = event.target;
+  if (!(target instanceof Element)) {
+    hidePieTip();
+    return;
+  }
+  const cat = target.getAttribute("data-cat");
+  const gage = Number(target.getAttribute("data-gage"));
+  if (!cat || !gage) {
+    hidePieTip();
+    return;
+  }
+  const gageInfo = GAGE_MAP.get(gage);
+  if (!gageInfo || gageInfo.LATITUDE == null || gageInfo.LONGITUDE == null) {
+    hidePieTip();
+    return;
+  }
+  showPieTip(event, gage, cat, gageInfo.LATITUDE, gageInfo.LONGITUDE);
+});
+
+map.getPanes().markerPane.addEventListener("mouseleave", function () {
+  hidePieTip();
+});
+
+window.addEventListener("mousemove", function (event) {
+  if (_pieTip && _pieTip.style.display === "block") {
+    _pieTip.style.left = (event.clientX + 14) + "px";
+    _pieTip.style.top = (event.clientY - 10) + "px";
+  }
+});
+
+populateStaticControls();
+render();
+  </script>
+</body>
+</html>

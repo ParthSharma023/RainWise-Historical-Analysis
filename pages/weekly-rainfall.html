@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Weekly Rainfall — RainWise</title>
+  <link rel="stylesheet" href="../styles.css">
+  <script src="../data/dims.js"></script>
+  <script src="../data/rain_2002.js"></script>
+  <script src="../data/rain_2003.js"></script>
+  <script src="../data/rain_2004.js"></script>
+  <script src="../data/rain_2005.js"></script>
+  <script src="../data/rain_2006.js"></script>
+  <script src="../data/rain_2007.js"></script>
+  <script src="../data/rain_2008.js"></script>
+  <script src="../data/rain_2009.js"></script>
+  <script src="../data/rain_2010.js"></script>
+  <script src="../data/rain_2011.js"></script>
+  <script src="../data/rain_2012.js"></script>
+  <script src="../data/rain_2013.js"></script>
+  <script src="../data/rain_2014.js"></script>
+  <script src="../data/rain_2015.js"></script>
+  <script src="../data/rain_2016.js"></script>
+  <script src="../data/rain_2017.js"></script>
+  <script src="../data/rain_2018.js"></script>
+  <script src="../data/rain_2019.js"></script>
+  <script src="../data/rain_2020.js"></script>
+  <script src="../data/rain_2021.js"></script>
+  <script src="../data/rain_2022.js"></script>
+  <script src="../data/rain_2023.js"></script>
+  <script src="../data/rain_2024.js"></script>
+  <script src="../data/rain_2025.js"></script>
+  <script src="../data/rain_2026.js"></script>
+  <script src="../dataLoader.js"></script>
+  <script src="../components.js"></script>
+  <style>
+    .pbi-header {
+      flex-shrink: 0;
+      width: 100%;
+      min-height: 64px;
+      box-sizing: border-box;
+      background: linear-gradient(90deg, #1a4a6e 0%, #0e2a42 100%);
+      border-bottom: 2px solid #2d7ab0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      overflow: visible;
+      position: relative;
+      z-index: 3000;
+      isolation: isolate;
+    }
+    .pbi-header-back {
+      color: #5da8ff;
+      text-decoration: none;
+      font-size: 18px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .hdr-slicer {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 4px 6px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(139,175,214,0.22);
+      border-radius: 6px;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+    }
+    .hdr-slicer.is-open {
+      z-index: 2;
+    }
+    .hdr-slicer .sl-lbl {
+      font-size: 9px;
+      color: #6a8aaa;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      font-weight: 700;
+    }
+    .hdr-slicer-btn {
+      width: 100%;
+      border: none;
+      border-radius: 4px;
+      background: rgba(12,21,34,0.8);
+      color: #f1f5fb;
+      font-size: 11px;
+      text-align: left;
+      cursor: pointer;
+      padding: 2px 18px 2px 4px;
+      min-height: 20px;
+      position: relative;
+    }
+    .hdr-slicer-btn::after {
+      content: '▾';
+      position: absolute;
+      right: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 9px;
+      color: #6a8aaa;
+    }
+    .hdr-slicer-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      min-width: 100%;
+      max-height: 260px;
+      overflow: auto;
+      display: none;
+      z-index: 1200;
+      background: rgba(13,23,37,0.98);
+      border: 1px solid rgba(139,175,214,0.28);
+      border-radius: 8px;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.35);
+      padding: 4px;
+    }
+    .hdr-slicer.is-open .hdr-slicer-menu {
+      display: block;
+    }
+    .hdr-slicer-item {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: #d9e6f2;
+      text-align: left;
+      font-size: 11px;
+      border-radius: 5px;
+      padding: 5px 6px;
+      cursor: pointer;
+    }
+    .hdr-slicer-item:hover {
+      background: rgba(93,168,255,0.14);
+      color: #f4f8fc;
+    }
+    .hdr-slicer-item.is-selected {
+      background: rgba(93,168,255,0.2);
+      color: #f4f8fc;
+      font-weight: 700;
+    }
+    .hdr-slicer-item.is-all {
+      border-bottom: 1px solid rgba(139,175,214,0.16);
+      margin-bottom: 3px;
+      padding-bottom: 6px;
+    }
+    .hdr-slicer-item-label {
+      display: block;
+      width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hdr-slicer-hint {
+      font-size: 9px;
+      color: #7f97b1;
+      padding: 3px 6px 1px;
+    }
+    .hdr-title-block {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      min-width: 0;
+      margin-left: 8px;
+      color: #f1f5fb;
+      flex: 1 1 auto;
+    }
+    .hdr-dynamic-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #8dc8ff;
+      white-space: nowrap;
+    }
+    .hdr-page-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #f1f5fb;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .page-shell {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      width: 100vw;
+      max-width: 100vw;
+      min-width: 0;
+      background: #0c1522;
+      overflow: hidden;
+    }
+    .weekly-main {
+      flex: 1;
+      min-height: 0;
+      padding: 10px 10px 12px;
+      position: relative;
+      z-index: 1;
+    }
+    .matrix-panel {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(180deg, rgba(22,36,54,.98), rgba(16,28,44,.98));
+      border: 1px solid rgba(139,175,214,0.18);
+      border-radius: 0;
+      box-shadow: none;
+      overflow: hidden;
+    }
+    .matrix-title {
+      flex-shrink: 0;
+      padding: 10px 12px 8px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #f1f5fb;
+      background: rgba(30,50,80,0.76);
+      border-bottom: 1px solid rgba(139,175,214,0.18);
+    }
+    .matrix-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      background: #122235;
+      scrollbar-color: rgba(106,138,170,0.9) rgba(18,30,48,0.18);
+      scrollbar-width: thin;
+    }
+    .weekly-grid {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: max-content;
+      min-width: 100%;
+      color: #162638;
+      font-size: 11px;
+      background: #122235;
+    }
+    .weekly-grid th,
+    .weekly-grid td {
+      min-width: 52px;
+      padding: 4px 6px;
+      text-align: center;
+      border-right: 1px solid rgba(122,156,199,0.24);
+      border-bottom: 1px solid rgba(122,156,199,0.18);
+    }
+    .weekly-grid thead th {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      background: #0f6785;
+      color: #eff7ff;
+      font-weight: 800;
+      padding: 7px 6px;
+    }
+    .weekly-grid thead th.corner {
+      left: 0;
+      z-index: 5;
+      min-width: 78px;
+      text-align: left;
+      padding-left: 10px;
+    }
+    .weekly-grid tbody th {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: #135f7e;
+      color: #eff7ff;
+      font-weight: 800;
+      min-width: 78px;
+      text-align: left;
+      padding-left: 10px;
+    }
+    .weekly-grid td {
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      background: #f6fafc;
+    }
+    .weekly-grid td.is-blank {
+      background: #203247;
+      color: rgba(231,240,248,0.16);
+    }
+    .weekly-grid td:hover,
+    .weekly-grid tbody th:hover {
+      outline: 1px solid rgba(28,79,127,0.4);
+      outline-offset: -1px;
+    }
+    .matrix-footnote {
+      flex-shrink: 0;
+      padding: 7px 12px 9px;
+      font-size: 11px;
+      color: #9eb5ca;
+      background: #122235;
+      border-top: 1px solid rgba(139,175,214,0.16);
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .legend-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .legend-chip span {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      display: inline-block;
+      border: 1px solid rgba(17,28,40,0.12);
+    }
+
+    @media (max-width: 1100px) {
+      body {
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+      }
+      .pbi-header {
+        height: auto;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        padding: 10px 12px;
+      }
+      .hdr-slicer {
+        min-width: 0;
+        width: calc(50% - 4px);
+        flex: 0 1 calc(50% - 4px);
+      }
+      .hdr-title-block {
+        width: 100%;
+        margin-left: 0;
+        flex-wrap: wrap;
+        gap: 4px 12px;
+      }
+      .hdr-page-title,
+      .hdr-dynamic-title {
+        white-space: normal;
+      }
+      .weekly-main {
+        min-height: 70vh;
+      }
+    }
+    @media (max-width: 620px) {
+      .hdr-slicer {
+        width: 100%;
+        flex-basis: 100%;
+      }
+    }
+  </style>
+</head>
+<body style="margin:0;display:flex;flex-direction:column;height:100vh;">
+<div class="page-shell">
+  <div class="pbi-header" id="hdr">
+    <a class="pbi-header-back" href="../index.html" title="Back">&#8592;</a>
+
+    <div class="hdr-slicer" style="width:90px;">
+      <div class="sl-lbl">Wk</div>
+      <button type="button" class="hdr-slicer-btn" id="slWeekBtn">All</button>
+      <div class="hdr-slicer-menu" id="slWeekMenu"></div>
+    </div>
+
+    <div class="hdr-slicer" style="width:94px;">
+      <div class="sl-lbl">Month</div>
+      <button type="button" class="hdr-slicer-btn" id="slMonthBtn">All</button>
+      <div class="hdr-slicer-menu" id="slMonthMenu"></div>
+    </div>
+
+    <div class="hdr-slicer" style="width:94px;">
+      <div class="sl-lbl">Year</div>
+      <button type="button" class="hdr-slicer-btn" id="slYearBtn">All</button>
+      <div class="hdr-slicer-menu" id="slYearMenu"></div>
+    </div>
+
+    <div class="hdr-slicer" style="width:108px;">
+      <div class="sl-lbl">Gage</div>
+      <button type="button" class="hdr-slicer-btn" id="slGageBtn">1670</button>
+      <div class="hdr-slicer-menu" id="slGageMenu"></div>
+    </div>
+
+    <div class="hdr-title-block">
+      <div class="hdr-dynamic-title" id="dynamicTitle">Raingage 1670</div>
+      <div class="hdr-page-title">Historical Rainfall | Review of Dry/Wet Periods</div>
+    </div>
+  </div>
+
+  <main class="weekly-main">
+    <section class="matrix-panel">
+      <div class="matrix-title">Weekly Rainfall, inch since 2002 by Selected Raingage</div>
+      <div class="matrix-scroll" id="matrixScroll">
+        <table class="weekly-grid" id="weeklyGrid"></table>
+      </div>
+      <div class="matrix-footnote">
+        <div class="legend-chip"><span style="background:#74e6a3;"></span>Zero rain</div>
+        <div class="legend-chip"><span style="background:#ffe889;"></span>&lt;0.3 in</div>
+        <div class="legend-chip"><span style="background:#78d2ff;"></span>0.3-1.0 in</div>
+        <div class="legend-chip"><span style="background:#ffb8ba;"></span>1.0-3.0 in</div>
+        <div class="legend-chip"><span style="background:#ff4438;"></span>3.0-5.0 in</div>
+        <div class="legend-chip"><span style="background:#1f242b;"></span>Over 5.0 in</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+Components.applyChartDefaults();
+
+const rainfall = window.MOCK.Realtime_rainfall_hcfcd_daily || [];
+
+function pbiWeekNum(dateStr) {
+  const d = new Date(`${dateStr}T00:00:00`);
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  const jan1MondayIndex = (jan1.getDay() + 6) % 7;
+  const diffDays = Math.floor((d - jan1) / 86400000);
+  return String(Math.floor((diffDays + jan1MondayIndex) / 7) + 1);
+}
+
+function correctedMonth(dateStr) {
+  const d = new Date(`${dateStr}T00:00:00`);
+  return String(d.getMonth() + 1);
+}
+
+const weeklyRows = rainfall.map(row => ({
+  ...row,
+  PbiYear: String(new Date(`${row.Date}T00:00:00`).getFullYear()),
+  PbiMonth: correctedMonth(row.DateCorrected),
+  PbiWeek: pbiWeekNum(row.Date),
+}));
+
+let selWeeks = new Set();
+let selMonths = new Set();
+let selYears = new Set();
+let selGage = 1670;
+
+const monthLabels = new Map([
+  ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'], ['5', '5'], ['6', '6'],
+  ['7', '7'], ['8', '8'], ['9', '9'], ['10', '10'], ['11', '11'], ['12', '12']
+]);
+
+const slWeekBtn = document.getElementById('slWeekBtn');
+const slWeekMenu = document.getElementById('slWeekMenu');
+const slMonthBtn = document.getElementById('slMonthBtn');
+const slMonthMenu = document.getElementById('slMonthMenu');
+const slYearBtn = document.getElementById('slYearBtn');
+const slYearMenu = document.getElementById('slYearMenu');
+const slGageBtn = document.getElementById('slGageBtn');
+const slGageMenu = document.getElementById('slGageMenu');
+const weeklyGrid = document.getElementById('weeklyGrid');
+const dynamicTitle = document.getElementById('dynamicTitle');
+
+const slicers = {
+  week: { key: 'week', button: slWeekBtn, menu: slWeekMenu, multi: true, widthHint: 'Ctrl/Cmd-click to multi-select' },
+  month: { key: 'month', button: slMonthBtn, menu: slMonthMenu, multi: true, widthHint: 'Ctrl/Cmd-click to multi-select' },
+  year: { key: 'year', button: slYearBtn, menu: slYearMenu, multi: true, widthHint: 'Ctrl/Cmd-click to multi-select' },
+  gage: { key: 'gage', button: slGageBtn, menu: slGageMenu, multi: false, widthHint: 'Single-select to match Power BI default' },
+};
+
+function asWeekLabel(weekStr) {
+  return String(Number(weekStr));
+}
+
+function weeklyCellStyle(value) {
+  if (value === 0) return { bg: '#74e6a3', fg: '#0f7340' };
+  if (value < 0.3) return { bg: '#ffe889', fg: '#8a6800' };
+  if (value < 1) return { bg: '#78d2ff', fg: '#0e6a91' };
+  if (value < 3) return { bg: '#ffb8ba', fg: '#9d4043' };
+  if (value < 5) return { bg: '#ff4438', fg: '#ffffff' };
+  return { bg: '#1f242b', fg: '#ffffff' };
+}
+
+function sortNumericStrings(values, descending = false) {
+  return [...values].sort((a, b) => descending ? Number(b) - Number(a) : Number(a) - Number(b));
+}
+
+function summarizeSelection(values, formatter = value => value) {
+  if (!values || values.size === 0) return 'All';
+  const list = [...values];
+  if (list.length === 1) return formatter(list[0]);
+  return `${list.length} selected`;
+}
+
+function getSelectionSet(key) {
+  if (key === 'week') return selWeeks;
+  if (key === 'month') return selMonths;
+  if (key === 'year') return selYears;
+  return new Set([String(selGage)]);
+}
+
+function setSelectionSet(key, next) {
+  if (key === 'week') selWeeks = next;
+  else if (key === 'month') selMonths = next;
+  else if (key === 'year') selYears = next;
+  else if (key === 'gage') selGage = Number([...next][0] || 1670);
+}
+
+function closeOpenSlicer(exceptKey = null) {
+  Object.values(slicers).forEach(slicer => {
+    if (slicer.key !== exceptKey) {
+      slicer.button.closest('.hdr-slicer').classList.remove('is-open');
+    }
+  });
+}
+
+function openSlicer(key) {
+  const slicer = slicers[key];
+  const wrap = slicer.button.closest('.hdr-slicer');
+  const willOpen = !wrap.classList.contains('is-open');
+  closeOpenSlicer(key);
+  wrap.classList.toggle('is-open', willOpen);
+}
+
+function applyFilter(rows, excludeKey = null) {
+  return rows.filter(row => {
+    if (excludeKey !== 'gage' && row.Gage !== selGage) return false;
+    if (excludeKey !== 'week' && selWeeks.size && !selWeeks.has(String(Number(row.PbiWeek)))) return false;
+    if (excludeKey !== 'month' && selMonths.size && !selMonths.has(String(row.PbiMonth))) return false;
+    if (excludeKey !== 'year' && selYears.size && !selYears.has(String(row.PbiYear))) return false;
+    return true;
+  });
+}
+
+function getAvailableOptions(key) {
+  const base = applyFilter(weeklyRows, key);
+  if (key === 'week') return sortNumericStrings(new Set(base.map(row => String(Number(row.PbiWeek)))));
+  if (key === 'month') return sortNumericStrings(new Set(base.map(row => String(row.PbiMonth))));
+  if (key === 'year') return sortNumericStrings(new Set(base.map(row => String(row.PbiYear))), true);
+  return sortNumericStrings(new Set(base.map(row => String(row.Gage))));
+}
+
+function reconcileSelection(key, options) {
+  const optionSet = new Set(options);
+  if (key === 'gage') {
+    if (!optionSet.has(String(selGage))) {
+      selGage = Number(options[0] || 1670);
+    }
+    return;
+  }
+  const current = getSelectionSet(key);
+  const next = new Set([...current].filter(value => optionSet.has(value)));
+  setSelectionSet(key, next);
+}
+
+function renderSlicerMenu(key, options) {
+  const slicer = slicers[key];
+  const selected = getSelectionSet(key);
+  const wrap = slicer.button.closest('.hdr-slicer');
+  slicer.menu.innerHTML = '';
+
+  if (slicer.multi) {
+    const allBtn = document.createElement('button');
+    allBtn.type = 'button';
+    allBtn.className = `hdr-slicer-item is-all${selected.size === 0 ? ' is-selected' : ''}`;
+    allBtn.innerHTML = '<span class="hdr-slicer-item-label">All</span>';
+    allBtn.addEventListener('click', () => {
+      setSelectionSet(key, new Set());
+      renderAll();
+    });
+    slicer.menu.appendChild(allBtn);
+
+    const hint = document.createElement('div');
+    hint.className = 'hdr-slicer-hint';
+    hint.textContent = slicer.widthHint;
+    slicer.menu.appendChild(hint);
+  }
+
+  options.forEach(option => {
+    const label = key === 'week' ? asWeekLabel(option)
+      : key === 'month' ? (monthLabels.get(option) || option)
+      : option;
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = `hdr-slicer-item${selected.has(option) || (key === 'gage' && Number(option) === selGage) ? ' is-selected' : ''}`;
+    item.innerHTML = `<span class="hdr-slicer-item-label">${label}</span>`;
+    item.addEventListener('click', event => {
+      const isMulti = slicer.multi && (event.metaKey || event.ctrlKey);
+      if (key === 'gage') {
+        selGage = Number(option);
+        closeOpenSlicer();
+      } else {
+        const next = new Set(getSelectionSet(key));
+        if (isMulti) {
+          if (next.has(option)) next.delete(option);
+          else next.add(option);
+        } else {
+          next.clear();
+          next.add(option);
+          closeOpenSlicer();
+        }
+        setSelectionSet(key, next);
+      }
+      renderAll();
+    });
+    slicer.menu.appendChild(item);
+  });
+
+  wrap.classList.toggle('is-open', wrap.classList.contains('is-open'));
+}
+
+function renderSlicerButtons() {
+  slWeekBtn.textContent = summarizeSelection(selWeeks, asWeekLabel);
+  slMonthBtn.textContent = summarizeSelection(selMonths, value => monthLabels.get(value) || value);
+  slYearBtn.textContent = summarizeSelection(selYears);
+  slGageBtn.textContent = String(selGage);
+}
+
+function renderMatrix() {
+  const filtered = applyFilter(weeklyRows);
+  const years = selYears.size ? sortNumericStrings(selYears, true) : getAvailableOptions('year');
+  const weeks = selWeeks.size ? sortNumericStrings(selWeeks) : getAvailableOptions('week');
+
+  const aggregates = new Map();
+  filtered.forEach(row => {
+    const y = String(row.PbiYear);
+    const w = String(Number(row.PbiWeek));
+    const yearMap = aggregates.get(y) || new Map();
+    const cell = yearMap.get(w) || { sum: 0, count: 0 };
+    cell.sum += Number(row.rain) || 0;
+    cell.count += 1;
+    yearMap.set(w, cell);
+    aggregates.set(y, yearMap);
+  });
+
+  const thead = ['<thead><tr><th class="corner">Year</th>'];
+  weeks.forEach(week => {
+    thead.push(`<th>${asWeekLabel(week)}</th>`);
+  });
+  thead.push('</tr></thead>');
+
+  const tbody = ['<tbody>'];
+  years.forEach(year => {
+    tbody.push(`<tr><th>${year}</th>`);
+    weeks.forEach(week => {
+      const cell = aggregates.get(year)?.get(week);
+      if (!cell || cell.count === 0) {
+        tbody.push('<td class="is-blank"></td>');
+        return;
+      }
+      const value = Math.round(cell.sum * 100) / 100;
+      const style = weeklyCellStyle(value);
+      tbody.push(
+        `<td style="background:${style.bg};color:${style.fg};">${value.toFixed(2)}</td>`
+      );
+    });
+    tbody.push('</tr>');
+  });
+  tbody.push('</tbody>');
+
+  weeklyGrid.innerHTML = thead.join('') + tbody.join('');
+  dynamicTitle.textContent = `Raingage ${selGage}`;
+}
+
+function renderAll() {
+  const weekOptions = getAvailableOptions('week');
+  const monthOptions = getAvailableOptions('month');
+  const yearOptions = getAvailableOptions('year');
+  const gageOptions = getAvailableOptions('gage');
+
+  reconcileSelection('week', weekOptions);
+  reconcileSelection('month', monthOptions);
+  reconcileSelection('year', yearOptions);
+  reconcileSelection('gage', gageOptions);
+
+  renderSlicerButtons();
+  renderSlicerMenu('week', weekOptions);
+  renderSlicerMenu('month', monthOptions);
+  renderSlicerMenu('year', yearOptions);
+  renderSlicerMenu('gage', gageOptions);
+  renderMatrix();
+}
+
+Object.values(slicers).forEach(slicer => {
+  slicer.button.addEventListener('click', event => {
+    event.stopPropagation();
+    openSlicer(slicer.key);
+  });
+  slicer.menu.addEventListener('click', event => {
+    event.stopPropagation();
+  });
+});
+
+document.addEventListener('click', () => closeOpenSlicer());
+window.addEventListener('keydown', event => {
+  if (event.key === 'Escape') closeOpenSlicer();
+});
+
+renderAll();
+</script>
+</body>
+</html>

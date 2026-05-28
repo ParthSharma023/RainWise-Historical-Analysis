@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RainClass Trends — RainWise</title>
+  <link rel="stylesheet" href="../styles.css">
+  <script src="../data/dims.js"></script>
+  <script src="../data/rain_2015.js"></script>
+  <script src="../data/rain_2016.js"></script>
+  <script src="../data/rain_2017.js"></script>
+  <script src="../data/rain_2018.js"></script>
+  <script src="../data/rain_2019.js"></script>
+  <script src="../data/rain_2020.js"></script>
+  <script src="../data/rain_2021.js"></script>
+  <script src="../data/rain_2022.js"></script>
+  <script src="../data/rain_2023.js"></script>
+  <script src="../data/rain_2024.js"></script>
+  <script src="../data/rain_2025.js"></script>
+  <script src="../data/rain_2026.js"></script>
+  <script src="../dataLoader.js"></script>
+  <style>
+    html, body {
+      min-height: 100%;
+    }
+    body {
+      margin: 0;
+      min-width: 1280px;
+      overflow: hidden;
+      background: #0c1522;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      max-width: 100vw;
+    }
+    .page-shell {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: rgba(8, 18, 29, 0.92);
+      overflow: hidden;
+    }
+    .pbi-header {
+      flex-shrink: 0;
+      width: 100%;
+      height: 64px;
+      box-sizing: border-box;
+      background: linear-gradient(90deg, #1a4a6e 0%, #0e2a42 100%);
+      border-bottom: 2px solid #2d7ab0;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      gap: 8px;
+      overflow: visible;
+      position: relative;
+      z-index: 3000;
+      isolation: isolate;
+    }
+    .pbi-header-back {
+      color: #5da8ff;
+      text-decoration: none;
+      font-size: 18px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .pbi-header-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #f1f5fb;
+      white-space: nowrap;
+      padding-right: 12px;
+      border-right: 1px solid rgba(185, 220, 244, 0.28);
+      flex-shrink: 0;
+    }
+    .hdr-slicer {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 4px 6px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(139,175,214,0.22);
+      border-radius: 6px;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+    }
+    .hdr-slicer.is-open {
+      z-index: 2;
+    }
+    .hdr-slicer .sl-lbl {
+      font-size: 9px;
+      color: #6a8aaa;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      font-weight: 700;
+    }
+    .hdr-slicer-btn {
+      width: 100%;
+      border: none;
+      border-radius: 4px;
+      background: rgba(12,21,34,0.8);
+      color: #f1f5fb;
+      font-size: 11px;
+      text-align: left;
+      cursor: pointer;
+      padding: 2px 18px 2px 4px;
+      min-height: 20px;
+      position: relative;
+    }
+    .hdr-slicer-btn::after {
+      content: '▾';
+      position: absolute;
+      right: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 9px;
+      color: #6a8aaa;
+    }
+    .hdr-slicer-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      min-width: 100%;
+      max-height: 240px;
+      overflow: auto;
+      display: none;
+      z-index: 1200;
+      background: rgba(13,23,37,0.98);
+      border: 1px solid rgba(139,175,214,0.28);
+      border-radius: 8px;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.35);
+      padding: 4px;
+    }
+    .hdr-slicer.is-open .hdr-slicer-menu {
+      display: block;
+    }
+    .hdr-slicer-item {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: #d9e6f2;
+      text-align: left;
+      font-size: 11px;
+      border-radius: 5px;
+      padding: 5px 6px;
+      cursor: pointer;
+    }
+    .hdr-slicer-item:hover {
+      background: rgba(93,168,255,0.14);
+      color: #f4f8fc;
+    }
+    .hdr-slicer-item.is-selected {
+      background: rgba(93,168,255,0.2);
+      color: #f4f8fc;
+      font-weight: 700;
+    }
+    .hdr-slicer-item.is-all {
+      border-bottom: 1px solid rgba(139,175,214,0.16);
+      margin-bottom: 3px;
+      padding-bottom: 6px;
+    }
+    .hdr-slicer-hint {
+      font-size: 9px;
+      color: #7f97b1;
+      padding: 3px 6px 1px;
+    }
+    .hdr-slicer-item-label {
+      display: block;
+      width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .main-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      background:
+        radial-gradient(circle at top left, rgba(45, 122, 176, 0.16), transparent 28%),
+        linear-gradient(180deg, #0d1623 0%, #0b1420 100%);
+      padding: 0;
+    }
+    .trend-panel {
+      background: linear-gradient(180deg, rgba(22, 36, 54, 0.97), rgba(16, 28, 44, 0.97));
+      border-top: 1px solid rgba(139, 175, 214, 0.18);
+      border-bottom: 1px solid rgba(139, 175, 214, 0.14);
+      padding: 12px 12px 16px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    .trend-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 10px;
+    }
+    .trend-heading {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding-left: 12px;
+      border-left: 3px solid var(--panel-accent, #5da8ff);
+      min-width: 0;
+    }
+    .trend-kicker {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      max-width: 100%;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(93, 168, 255, 0.12);
+      box-shadow: inset 0 0 0 1px rgba(93, 168, 255, 0.16);
+      color: var(--panel-accent, #8fc5ff);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .trend-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #eef5fb;
+      margin: 0;
+      line-height: 1.25;
+    }
+    .trend-subtitle {
+      font-size: 11px;
+      font-weight: 700;
+      color: #84a8c8;
+      margin: 0;
+      letter-spacing: 0.02em;
+    }
+    .trend-surface {
+      background: linear-gradient(180deg, rgba(23, 39, 58, 0.96) 0%, rgba(16, 31, 47, 0.96) 100%);
+      border: 1px solid rgba(139, 175, 214, 0.18);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+      overflow: hidden;
+      padding: 8px 10px 10px;
+    }
+    .trend-chart {
+      display: flex;
+      gap: 18px;
+      align-items: flex-end;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 4px 2px 0;
+      min-height: 124px;
+      scrollbar-color: rgba(106,138,170,0.88) rgba(18,30,48,0.1);
+      scrollbar-width: thin;
+    }
+    .trend-chart.is-fit {
+      overflow-x: hidden;
+      justify-content: stretch;
+      gap: 0;
+    }
+    .trend-chart.is-fit .year-group {
+      flex: 1 1 0;
+      min-width: 0;
+      padding-right: 14px;
+    }
+    .trend-chart.is-fit .year-bars {
+      justify-content: space-between;
+      gap: 7px;
+    }
+    .trend-chart.is-fit .bar-item {
+      flex: 1 1 0;
+      width: auto;
+      max-width: 38px;
+    }
+    .trend-chart.is-sparse {
+      justify-content: center;
+      gap: 44px;
+      overflow: hidden;
+      min-height: 136px;
+    }
+    .trend-chart.is-sparse .year-group {
+      flex: 0 1 320px;
+      min-width: 220px;
+      padding: 0 14px;
+    }
+    .trend-chart.is-sparse .year-bars {
+      justify-content: center;
+      gap: 0;
+      min-height: 106px;
+    }
+    .trend-chart.is-sparse .bar-item {
+      width: 100%;
+      max-width: none;
+    }
+    .trend-chart.is-annual {
+      justify-content: center;
+      gap: 58px;
+      overflow: hidden;
+      min-height: 138px;
+    }
+    .trend-chart.is-annual .year-group {
+      flex: 0 1 292px;
+      min-width: 230px;
+      padding: 0 10px;
+      border-right: none;
+    }
+    .trend-chart.is-annual .year-bars {
+      justify-content: center;
+      min-height: 110px;
+    }
+    .trend-chart.is-annual .bar-item {
+      width: 100%;
+      max-width: none;
+    }
+    .year-group {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 4px;
+      padding-right: 18px;
+      border-right: 2px dotted rgba(116, 145, 182, 0.3);
+      flex-shrink: 0;
+    }
+    .year-group:last-child {
+      border-right: none;
+      padding-right: 0;
+    }
+    .year-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      min-height: 92px;
+    }
+    .bar-item {
+      width: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      flex-shrink: 0;
+    }
+    .bar-value {
+      font-size: 11px;
+      line-height: 1;
+      color: #dbe7f3;
+      margin-bottom: 4px;
+      min-height: 12px;
+      font-weight: 700;
+      text-shadow: 0 1px 1px rgba(0,0,0,0.35);
+    }
+    .bar-rect {
+      width: 100%;
+      min-height: 5px;
+      border-radius: 0;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.16);
+    }
+    .bar-month {
+      margin-top: 5px;
+      font-size: 11px;
+      color: #9fb4c8;
+      line-height: 1;
+      font-weight: 600;
+    }
+    .bar-month.is-hidden {
+      visibility: hidden;
+    }
+    .year-label {
+      text-align: center;
+      font-size: 12px;
+      color: #bdd0e2;
+      line-height: 1.1;
+      padding-top: 2px;
+      font-weight: 700;
+    }
+    .empty-panel {
+      padding: 28px 12px;
+      font-size: 12px;
+      color: #64748b;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="pbi-header">
+      <a class="pbi-header-back" href="../index.html" title="Back">&#8592;</a>
+      <div class="pbi-header-title">Trends | Count of Days by Rainfall Category</div>
+
+      <div class="hdr-slicer" style="width:74px;">
+        <div class="sl-lbl">Month</div>
+        <button type="button" class="hdr-slicer-btn" id="slMonthBtn">All</button>
+        <div class="hdr-slicer-menu" id="slMonthMenu"></div>
+      </div>
+
+      <div class="hdr-slicer" style="width:92px;">
+        <div class="sl-lbl">Year</div>
+        <button type="button" class="hdr-slicer-btn" id="slYearBtn">Multiple...</button>
+        <div class="hdr-slicer-menu" id="slYearMenu"></div>
+      </div>
+
+      <div class="hdr-slicer" style="width:92px;">
+        <div class="sl-lbl">Gage</div>
+        <button type="button" class="hdr-slicer-btn" id="slGageBtn">1670</button>
+        <div class="hdr-slicer-menu" id="slGageMenu"></div>
+      </div>
+
+      <div class="hdr-slicer" style="width:118px;">
+        <div class="sl-lbl">Sewer Basin</div>
+        <button type="button" class="hdr-slicer-btn" id="slBasinBtn">All</button>
+        <div class="hdr-slicer-menu" id="slBasinMenu"></div>
+      </div>
+
+      <div class="hdr-slicer" style="width:128px;">
+        <div class="sl-lbl">WWTP SA</div>
+        <button type="button" class="hdr-slicer-btn" id="slWWTPBtn">All</button>
+        <div class="hdr-slicer-menu" id="slWWTPMenu"></div>
+      </div>
+    </header>
+
+    <main class="main-scroll" id="trendHost"></main>
+  </div>
+
+  <script>
+const rainfall = window.MOCK?.Realtime_rainfall_hcfcd_daily || [];
+const meter = window.MOCK?.MeterBasin_RainGauge || [];
+const gages = window.MOCK?.RainGauge_HCFCD || [];
+
+const gagesByBasin = new Map();
+const gagesByWWTP = new Map();
+meter.forEach(row => {
+  const basin = String(row.METERBASIN || '').trim();
+  const wwtp = String(row.SERVICE_AR || '').trim();
+  const gage = String(row.RAINGAGEID);
+  if (basin) {
+    if (!gagesByBasin.has(basin)) gagesByBasin.set(basin, new Set());
+    gagesByBasin.get(basin).add(gage);
+  }
+  if (wwtp) {
+    if (!gagesByWWTP.has(wwtp)) gagesByWWTP.set(wwtp, new Set());
+    gagesByWWTP.get(wwtp).add(gage);
+  }
+});
+
+const trendHost = document.getElementById('trendHost');
+const slMonthBtn = document.getElementById('slMonthBtn');
+const slMonthMenu = document.getElementById('slMonthMenu');
+const slYearBtn = document.getElementById('slYearBtn');
+const slYearMenu = document.getElementById('slYearMenu');
+const slGageBtn = document.getElementById('slGageBtn');
+const slGageMenu = document.getElementById('slGageMenu');
+const slBasinBtn = document.getElementById('slBasinBtn');
+const slBasinMenu = document.getElementById('slBasinMenu');
+const slWWTPBtn = document.getElementById('slWWTPBtn');
+const slWWTPMenu = document.getElementById('slWWTPMenu');
+
+let selMonths = new Set();
+let selYears = new Set();
+let selGages = new Set(['1670']);
+let selBasins = new Set();
+let selWWTPs = new Set();
+let openSlicerKey = null;
+let yearSelectionMode = 'default';
+
+const allYears = [...new Set(rainfall.map(r => Number(r.Year)).filter(Number.isFinite))].sort((a, b) => a - b);
+const latestYear = allYears[allYears.length - 1];
+const defaultYears = allYears.filter(y => y >= latestYear - 2);
+const defaultYearSet = new Set(defaultYears.map(String));
+selYears = new Set(defaultYearSet);
+
+const trendDefs = [
+  { key: 'zero', title: 'Count of days for Category, Zero Rain', subtitle: () => currentSubtitle(), color: '#b0b5ba', filter: row => row.Event_Category === 'Zero Rain' },
+  { key: 'lt1', title: 'Count of days for Category, <1.0 in Rain', subtitle: () => currentSubtitle(), color: '#63c6bf', filter: row => row.rain > 0 && row.rain < 1 },
+  { key: 'mid', title: 'Count of days for Category, 1.0-3.0 in', subtitle: () => currentSubtitle(), color: '#2196c5', filter: row => row.Event_Category === '1.0-3.0 in' },
+  { key: 'ov5', title: 'Count of days for Category, Over 5.0 in', subtitle: () => currentSubtitle(), color: '#f58d8d', filter: row => row.Event_Category === 'Over 5.0 in', mode: 'yearly' },
+];
+
+const slicers = {
+  month: { btn: slMonthBtn, menu: slMonthMenu, allLabel: 'All', summary: () => summarizeMonthSelection() },
+  year: { btn: slYearBtn, menu: slYearMenu, allLabel: 'All', summary: () => summarizeYearSelection() },
+  gage: { btn: slGageBtn, menu: slGageMenu, allLabel: 'All', summary: () => summarizeGageSelection() },
+  basin: { btn: slBasinBtn, menu: slBasinMenu, allLabel: 'All', summary: () => summarizeSet(selBasins, 'All') },
+  wwtp: { btn: slWWTPBtn, menu: slWWTPMenu, allLabel: 'All', summary: () => summarizeSet(selWWTPs, 'All') },
+};
+
+const slicerOptions = { month: [], year: [], gage: [], basin: [], wwtp: [] };
+
+function intersectSets(a, b) {
+  return new Set([...a].filter(value => b.has(value)));
+}
+
+function unionMapped(values, map) {
+  if (!values.size) return null;
+  const union = new Set();
+  values.forEach(value => {
+    const set = map.get(value);
+    if (set) set.forEach(item => union.add(item));
+  });
+  return union;
+}
+
+function allowedGages() {
+  let allowed = new Set(gages.map(g => String(g.Raingage)));
+  if (selGages.size) allowed = intersectSets(allowed, selGages);
+  const basinUnion = unionMapped(selBasins, gagesByBasin);
+  if (basinUnion) allowed = intersectSets(allowed, basinUnion);
+  const wwtpUnion = unionMapped(selWWTPs, gagesByWWTP);
+  if (wwtpUnion) allowed = intersectSets(allowed, wwtpUnion);
+  return allowed;
+}
+
+function filteredRows({ skip = null } = {}) {
+  const gageSet = (() => {
+    let allowed = new Set(gages.map(g => String(g.Raingage)));
+    if (skip !== 'gage' && selGages.size) allowed = intersectSets(allowed, selGages);
+    if (skip !== 'basin') {
+      const basinUnion = unionMapped(selBasins, gagesByBasin);
+      if (basinUnion) allowed = intersectSets(allowed, basinUnion);
+    }
+    if (skip !== 'wwtp') {
+      const wwtpUnion = unionMapped(selWWTPs, gagesByWWTP);
+      if (wwtpUnion) allowed = intersectSets(allowed, wwtpUnion);
+    }
+    return allowed;
+  })();
+
+  return rainfall.filter(row =>
+    gageSet.has(String(row.Gage)) &&
+    (skip === 'month' || !selMonths.size || selMonths.has(String(row.Month))) &&
+    (skip === 'year' || !selYears.size || selYears.has(String(row.Year)))
+  );
+}
+
+function reconcileSet(currentSet, options) {
+  const optionSet = new Set(options.map(String));
+  return new Set([...currentSet].filter(value => optionSet.has(String(value))));
+}
+
+function summarizeSet(selectedSet, allLabel = 'All') {
+  if (!selectedSet.size) return allLabel;
+  if (selectedSet.size === 1) return [...selectedSet][0];
+  return `${selectedSet.size} selected`;
+}
+
+function summarizeMonthSelection() {
+  if (!selMonths.size) return 'All';
+  if (selMonths.size === 1) return [...selMonths][0];
+  return 'Multiple...';
+}
+
+function summarizeYearSelection() {
+  if (yearSelectionMode === 'all' || !selYears.size || selYears.size === allYears.length) return 'All';
+  if (selYears.size === 1) return [...selYears][0];
+  return 'Multiple...';
+}
+
+function summarizeGageSelection() {
+  if (!selGages.size) return 'All';
+  if (selGages.size === 1) return [...selGages][0];
+  return 'Multiple...';
+}
+
+function currentSubtitle() {
+  if (selGages.size === 1) return `Raingage ${[...selGages][0]}`;
+  if (selGages.size > 1) return `${selGages.size} gages selected`;
+  return 'All gages';
+}
+
+function updateSlicerButtonLabel(key) {
+  slicers[key].btn.textContent = slicers[key].summary();
+}
+
+function renderSlicerMenu(key) {
+  const menu = slicers[key].menu;
+  const selectedSet = getSelectionSet(key);
+  const options = slicerOptions[key];
+  menu.innerHTML = '';
+
+  const hint = document.createElement('div');
+  hint.className = 'hdr-slicer-hint';
+  hint.textContent = 'Ctrl/Cmd-click to multi-select';
+  menu.appendChild(hint);
+
+  const makeItem = (label, value, selected, extraClass = '') => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `hdr-slicer-item ${selected ? 'is-selected' : ''} ${extraClass}`.trim();
+    btn.dataset.value = value;
+    btn.innerHTML = `<span class="hdr-slicer-item-label">${label}</span>`;
+    return btn;
+  };
+
+  menu.appendChild(makeItem(slicers[key].allLabel, '__all__', selectedSet.size === 0, 'is-all'));
+  options.forEach(option => {
+    menu.appendChild(makeItem(String(option), String(option), selectedSet.has(String(option))));
+  });
+  updateSlicerButtonLabel(key);
+}
+
+function getSelectionSet(key) {
+  if (key === 'month') return selMonths;
+  if (key === 'year') return selYears;
+  if (key === 'gage') return selGages;
+  if (key === 'basin') return selBasins;
+  return selWWTPs;
+}
+
+function setSelectionSet(key, nextSet) {
+  if (key === 'month') selMonths = nextSet;
+  else if (key === 'year') selYears = nextSet;
+  else if (key === 'gage') selGages = nextSet;
+  else if (key === 'basin') selBasins = nextSet;
+  else selWWTPs = nextSet;
+}
+
+function closeOpenSlicer() {
+  if (!openSlicerKey) return;
+  slicers[openSlicerKey].btn.closest('.hdr-slicer').classList.remove('is-open');
+  openSlicerKey = null;
+}
+
+function openSlicer(key) {
+  if (openSlicerKey === key) {
+    closeOpenSlicer();
+    return;
+  }
+  closeOpenSlicer();
+  slicers[key].btn.closest('.hdr-slicer').classList.add('is-open');
+  openSlicerKey = key;
+}
+
+function syncSlicerOptions() {
+  let changed = false;
+
+  const monthOptions = [...new Set(filteredRows({ skip: 'month' }).map(row => String(row.Month)))].sort((a, b) => Number(a) - Number(b));
+  const nextMonths = reconcileSet(selMonths, monthOptions);
+  if (nextMonths.size !== selMonths.size || [...nextMonths].some(v => !selMonths.has(v))) { selMonths = nextMonths; changed = true; }
+  slicerOptions.month = monthOptions;
+
+  const yearOptions = [...new Set(filteredRows({ skip: 'year' }).map(row => String(row.Year)))].sort((a, b) => Number(a) - Number(b));
+  let nextYears = reconcileSet(selYears, yearOptions);
+  if (yearSelectionMode === 'default' && yearOptions.length) {
+    const preferred = yearOptions.filter(year => defaultYearSet.has(String(year)));
+    const fallback = yearOptions.slice(-Math.min(3, yearOptions.length));
+    nextYears = new Set((preferred.length ? preferred : fallback).map(String));
+  } else if (yearSelectionMode === 'all') {
+    nextYears = new Set();
+  } else if (!nextYears.size && yearOptions.length) {
+    const fallback = yearOptions.slice(-Math.min(3, yearOptions.length));
+    nextYears = new Set(fallback.map(String));
+  }
+  if (nextYears.size !== selYears.size || [...nextYears].some(v => !selYears.has(v))) { selYears = nextYears; changed = true; }
+  slicerOptions.year = yearOptions;
+
+  const gageOptions = [...new Set(filteredRows({ skip: 'gage' }).map(row => String(row.Gage)))].sort((a, b) => Number(a) - Number(b));
+  const nextGages = reconcileSet(selGages, gageOptions);
+  if (nextGages.size !== selGages.size || [...nextGages].some(v => !selGages.has(v))) { selGages = nextGages; changed = true; }
+  slicerOptions.gage = gageOptions;
+
+  const basinOptions = [...new Set(
+    meter
+      .filter(row => gageOptions.includes(String(row.RAINGAGEID)))
+      .map(row => String(row.METERBASIN))
+      .filter(Boolean)
+  )].sort();
+  const nextBasins = reconcileSet(selBasins, basinOptions);
+  if (nextBasins.size !== selBasins.size || [...nextBasins].some(v => !selBasins.has(v))) { selBasins = nextBasins; changed = true; }
+  slicerOptions.basin = basinOptions;
+
+  const wwtpOptions = [...new Set(
+    meter
+      .filter(row => gageOptions.includes(String(row.RAINGAGEID)))
+      .map(row => String(row.SERVICE_AR))
+      .filter(Boolean)
+  )].sort();
+  const nextWWTPs = reconcileSet(selWWTPs, wwtpOptions);
+  if (nextWWTPs.size !== selWWTPs.size || [...nextWWTPs].some(v => !selWWTPs.has(v))) { selWWTPs = nextWWTPs; changed = true; }
+  slicerOptions.wwtp = wwtpOptions;
+
+  Object.keys(slicers).forEach(renderSlicerMenu);
+  return changed;
+}
+
+function ensureConsistentState() {
+  let safety = 0;
+  while (syncSlicerOptions() && safety < 5) safety += 1;
+}
+
+function buildTrendGroups(data, def) {
+  if (def.mode === 'yearly') {
+    const grouped = new Map();
+    data.filter(def.filter).forEach(row => {
+      const yearKey = String(row.Year);
+      grouped.set(yearKey, (grouped.get(yearKey) || 0) + 1);
+    });
+
+    return [...grouped.entries()]
+      .sort((a, b) => Number(a[0]) - Number(b[0]))
+      .map(([year, count]) => ({ year, items: [{ count }] }));
+  }
+
+  const grouped = new Map();
+  data.filter(def.filter).forEach(row => {
+    const year = Number(row.Year);
+    const month = Number(row.Month);
+    const yearKey = String(year);
+    if (!grouped.has(yearKey)) grouped.set(yearKey, new Map());
+    const monthMap = grouped.get(yearKey);
+    monthMap.set(month, (monthMap.get(month) || 0) + 1);
+  });
+
+  const years = [...grouped.keys()].sort((a, b) => Number(a) - Number(b));
+  return years.map(year => {
+    const items = [...grouped.get(year).entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([month, count]) => ({ month, count }));
+    return { year, items };
+  }).filter(group => group.items.length);
+}
+
+function renderTrendPanel(def, data) {
+  const groups = buildTrendGroups(data, def);
+  if (!groups.length) {
+    return `<section class="trend-panel">
+      <div class="trend-title">${def.title}</div>
+      <div class="trend-subtitle">${def.subtitle()}</div>
+      <div class="trend-surface">
+        <div class="empty-panel">No matching days for the current filters.</div>
+      </div>
+    </section>`;
+  }
+
+  const maxCount = Math.max(...groups.flatMap(group => group.items.map(item => item.count)));
+  const totalBars = groups.reduce((sum, group) => sum + group.items.length, 0);
+  const fitGroups = groups.length <= 4;
+  const isSparse = totalBars <= 4;
+  const chartHtml = groups.map(group => {
+    const bars = group.items.map(item => {
+      const maxHeight = isSparse ? 70 : 54;
+      const minHeight = isSparse ? 18 : 5;
+      const height = Math.max(minHeight, Math.round((item.count / maxCount) * maxHeight));
+      return `<div class="bar-item">
+        <div class="bar-value">${item.count}</div>
+        <div class="bar-rect" style="height:${height}px;background:${def.color};"></div>
+        <div class="bar-month ${def.mode === 'yearly' ? 'is-hidden' : ''}">${def.mode === 'yearly' ? '&nbsp;' : item.month}</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="year-group">
+      <div class="year-bars">${bars}</div>
+      <div class="year-label">${group.year}</div>
+    </div>`;
+  }).join('');
+
+  return `<section class="trend-panel" style="--panel-accent:${def.color};">
+    <div class="trend-header">
+      <div class="trend-heading">
+        <div class="trend-kicker">Rainfall Category</div>
+        <div class="trend-title">${def.title}</div>
+        <div class="trend-subtitle">${def.subtitle()}</div>
+      </div>
+    </div>
+    <div class="trend-surface">
+      <div class="trend-chart ${fitGroups ? 'is-fit' : ''} ${isSparse ? 'is-sparse' : ''} ${def.mode === 'yearly' ? 'is-annual' : ''}">${chartHtml}</div>
+    </div>
+  </section>`;
+}
+
+function render() {
+  ensureConsistentState();
+  const data = filteredRows();
+  trendHost.innerHTML = trendDefs.map(def => renderTrendPanel(def, data)).join('');
+}
+
+Object.keys(slicers).forEach(key => {
+  slicers[key].btn.addEventListener('click', event => {
+    event.stopPropagation();
+    openSlicer(key);
+  });
+
+  slicers[key].menu.addEventListener('click', event => {
+    const item = event.target.closest('.hdr-slicer-item');
+    if (!item) return;
+    event.stopPropagation();
+    const value = item.dataset.value;
+    const append = !!(event.ctrlKey || event.metaKey);
+    let next = new Set(getSelectionSet(key));
+
+    if (value === '__all__') {
+      next.clear();
+      if (key === 'year') yearSelectionMode = 'all';
+    } else if (!append) {
+      next = new Set([value]);
+      if (key === 'year') yearSelectionMode = 'manual';
+    } else if (next.has(value)) {
+      next.delete(value);
+      if (key === 'year') yearSelectionMode = 'manual';
+    } else {
+      next.add(value);
+      if (key === 'year') yearSelectionMode = 'manual';
+    }
+
+    setSelectionSet(key, next);
+    render();
+    if (!append) closeOpenSlicer();
+    else renderSlicerMenu(key);
+  });
+});
+
+document.addEventListener('click', event => {
+  if (!event.target.closest('.hdr-slicer')) closeOpenSlicer();
+});
+
+render();
+  </script>
+</body>
+</html>

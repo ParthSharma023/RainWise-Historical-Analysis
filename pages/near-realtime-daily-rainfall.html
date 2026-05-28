@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Near Realtime Daily Rainfall — RainWise</title>
   <link rel="stylesheet" href="../styles.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -28,7 +29,10 @@
       background: linear-gradient(90deg, #1a4a6e 0%, #0e2a42 100%);
       border-bottom: 2px solid #2d7ab0;
       display: flex; align-items: center; padding: 0 12px; gap: 8px;
-      overflow: visible; z-index: 200;
+      overflow: visible;
+      position: relative;
+      z-index: 3000;
+      isolation: isolate;
     }
     .pbi-header-back { color: #5da8ff; text-decoration: none; font-size: 18px; line-height: 1; flex-shrink: 0; }
     .pbi-header-title { font-size: 14px; font-weight: 700; color: #f1f5fb; white-space: nowrap; }
@@ -41,49 +45,97 @@
       border: 1px solid rgba(139,175,214,0.22);
       border-radius: 6px;
       flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+    }
+    .hdr-slicer.is-open {
+      z-index: 2;
     }
     .hdr-slicer .sl-lbl { font-size: 9px; color: #6a8aaa; text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
-    .hdr-slicer select {
-      background: rgba(12,21,34,0.8); color: #f1f5fb; border: none;
-      font-size: 11px; outline: none; cursor: pointer; padding: 0 2px;
-      appearance: none; -webkit-appearance: none;
+    .hdr-slicer-btn {
       width: 100%;
-    }
-    /* Gage multi-select dropdown */
-    .gage-slicer-wrap {
-      display: flex; flex-direction: column; gap: 2px;
-      padding: 4px 6px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(139,175,214,0.22);
-      border-radius: 6px;
+      border: none;
+      border-radius: 4px;
+      background: rgba(12,21,34,0.8);
+      color: #f1f5fb;
+      font-size: 11px;
+      text-align: left;
+      cursor: pointer;
+      padding: 2px 18px 2px 4px;
+      min-height: 20px;
       position: relative;
-      flex-shrink: 0;
     }
-    .gage-slicer-wrap .sl-lbl { font-size: 9px; color: #6a8aaa; text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
-    .gage-trigger {
-      font-size: 11px; color: #f1f5fb; cursor: pointer; white-space: nowrap;
-      display: flex; align-items: center; gap: 4px;
+    .hdr-slicer-btn::after {
+      content: '▾';
+      position: absolute;
+      right: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 9px;
+      color: #6a8aaa;
     }
-    .gage-trigger::after { content: '▾'; font-size: 9px; color: #6a8aaa; }
-    .gage-dropdown {
-      display: none; position: absolute; top: 100%; left: 0; z-index: 9999;
-      background: #162436; border: 1px solid rgba(139,175,214,0.3);
-      border-radius: 6px; padding: 6px; min-width: 130px;
-      max-height: 240px; overflow-y: auto;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    .hdr-slicer-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      min-width: 100%;
+      max-height: 240px;
+      overflow: auto;
+      display: none;
+      z-index: 1200;
+      background: rgba(13,23,37,0.98);
+      border: 1px solid rgba(139,175,214,0.28);
+      border-radius: 8px;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.35);
+      padding: 4px;
     }
-    .gage-dropdown.open { display: block; }
-    .gage-dropdown label {
-      display: flex; align-items: center; gap: 5px; font-size: 10px;
-      color: #b4c0d0; padding: 2px 4px; cursor: pointer; white-space: nowrap;
+    .hdr-slicer.is-open .hdr-slicer-menu {
+      display: block;
     }
-    .gage-dropdown label:hover { color: #f1f5fb; }
-    .gage-dropdown input[type=checkbox] { accent-color: #5da8ff; width: 11px; height: 11px; }
-    .gage-dropdown .dd-all { border-bottom: 1px solid rgba(139,175,214,0.18); margin-bottom: 4px; padding-bottom: 4px; }
-
+    .hdr-slicer-item {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: #d9e6f2;
+      text-align: left;
+      font-size: 11px;
+      border-radius: 5px;
+      padding: 5px 6px;
+      cursor: pointer;
+    }
+    .hdr-slicer-item:hover {
+      background: rgba(93,168,255,0.14);
+      color: #f4f8fc;
+    }
+    .hdr-slicer-item.is-selected {
+      background: rgba(93,168,255,0.2);
+      color: #f4f8fc;
+      font-weight: 700;
+    }
+    .hdr-slicer-item.is-all {
+      border-bottom: 1px solid rgba(139,175,214,0.16);
+      margin-bottom: 3px;
+      padding-bottom: 6px;
+    }
+    .hdr-slicer-hint {
+      font-size: 9px;
+      color: #7f97b1;
+      padding: 3px 6px 1px;
+    }
+    .hdr-slicer-item-label {
+      display: block;
+      width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     /* Two-panel content row */
     .main-row {
-      display: flex; flex: 1; overflow: hidden; min-height: 0;
+      display: flex; flex: 1; overflow: hidden; min-height: 0; width: 100%; max-width: 100%;
+      position: relative;
+      z-index: 1;
     }
 
     /* Heatmap panel */
@@ -95,34 +147,121 @@
     }
     .heatmap-panel .hm-title {
       flex-shrink: 0;
-      padding: 7px 10px 6px;
-      font-size: 12px; font-weight: 700; color: #f1f5fb;
-      background: rgba(30,50,80,0.7);
-      border-bottom: 2px solid rgba(93,168,255,0.45);
+      padding: 10px 12px 8px;
+      font-size: 13px; font-weight: 800; color: #f1f5fb;
+      background: rgba(30,50,80,0.76);
+      border-bottom: 1px solid rgba(139,175,214,0.18);
       border-top: 1px solid rgba(139,175,214,0.18);
       letter-spacing: 0.01em;
     }
     .heatmap-inner {
-      flex: 1; overflow: hidden; min-height: 0;
+      flex: 1;
+      overflow: auto;
+      min-height: 0;
+      background: #eef3f8;
+      scrollbar-color: rgba(106,138,170,0.9) rgba(18,30,48,0.25);
+      scrollbar-width: thin;
+    }
+    .daily-grid {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: max-content;
+      min-width: 100%;
+      color: #162638;
+      font-size: 11px;
+      background: #ffffff;
+      white-space: nowrap;
+      --cell-width: 52px;
+    }
+    .daily-grid th,
+    .daily-grid td {
+      min-width: var(--cell-width);
+      padding: 4px 6px;
+      text-align: center;
+      border-right: 1px solid rgba(122,156,199,0.24);
+      border-bottom: 1px solid rgba(122,156,199,0.18);
+    }
+    .daily-grid thead th {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      background: #0f6785;
+      color: #eff7ff;
+      font-weight: 800;
+      padding: 7px 6px;
+    }
+    .daily-grid thead th.corner {
+      left: 0;
+      z-index: 5;
+      min-width: 102px;
+      text-align: left;
+      padding-left: 10px;
+    }
+    .daily-grid tbody th {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: #135f7e;
+      color: #eff7ff;
+      font-weight: 800;
+      min-width: 102px;
+      text-align: left;
+      padding-left: 10px;
+    }
+    .daily-grid td {
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      background: #f6fafc;
+      line-height: 1.1;
+    }
+    .daily-grid td.is-selected {
+      box-shadow: inset 0 0 0 2px #ffffff, inset 0 0 0 3px rgba(19,95,126,0.42);
+    }
+    .daily-grid td.is-empty {
+      background: #f8fbfe;
+      color: rgba(22,38,56,0.18);
+    }
+    .heatmap-legend {
+      display: flex;
+      gap: 10px;
+      padding: 7px 12px 9px;
+      flex-wrap: wrap;
+      align-items: center;
+      background: #0f1e2e;
+      color: #b4c0d0;
+      position: sticky;
+      bottom: 0;
+      font-size: 11px;
+      border-top: 1px solid rgba(139,175,214,0.14);
+    }
+    .heatmap-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .heatmap-legend-swatch {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
     }
 
     /* Map panel */
     .map-panel {
       flex: 1; height: 100%; position: relative;
       border-left: 1px solid rgba(139,175,214,0.18);
-      background: #0e1e2e;
+      background: #f3f5f8;
     }
     #leaflet-map {
       width: 100%; height: 100%;
     }
 
-    /* Leaflet dark overrides */
-    .leaflet-container { background: #0e1e2e; }
-    .leaflet-tile-pane { filter: brightness(0.75) saturate(0.6) hue-rotate(180deg); }
-    .leaflet-control-attribution { background: rgba(12,21,34,0.7) !important; color: #6a8aaa !important; }
-    .leaflet-control-attribution a { color: #5da8ff !important; }
-    .leaflet-control-zoom a { background: #162436 !important; color: #b4c0d0 !important; border-color: rgba(139,175,214,0.3) !important; }
-    .leaflet-control-zoom a:hover { background: #1e3050 !important; color: #f1f5fb !important; }
+    .leaflet-container { background: #f3f5f8; }
+    .leaflet-tile { opacity: 1 !important; }
+    .leaflet-control-attribution { background: rgba(255,255,255,0.88) !important; color: #5f6d7a !important; }
+    .leaflet-control-attribution a { color: #2669b2 !important; }
+    .leaflet-control-zoom a { background: rgba(255,255,255,0.94) !important; color: #38516a !important; border-color: rgba(80,105,130,0.25) !important; }
+    .leaflet-control-zoom a:hover { background: #ffffff !important; color: #1f3650 !important; }
 
     /* Custom map marker popup */
     .leaflet-popup-content-wrapper {
@@ -143,67 +282,157 @@
     .pie-marker { background: none !important; border: none !important; pointer-events: all !important; }
     .pie-marker svg { pointer-events: all; }
     .pie-marker svg path, .pie-marker svg circle[data-gage] { transition: opacity 0.1s; pointer-events: fill; }
-    .pie-marker:hover svg path, .pie-marker:hover svg circle[data-gage] { opacity: 0.85; }
+    .pie-marker:hover svg path, .pie-marker:hover svg circle[data-gage] { opacity: 0.9; }
 
     /* Rain legend */
     .map-legend {
-      position: absolute; bottom: 8px; left: 4px; z-index: 1000;
-      background: rgba(12,21,34,0.88); border: 1px solid rgba(139,175,214,0.22);
-      border-radius: 6px; padding: 5px 8px; font-size: 10px; color: #b4c0d0;
+      position: absolute; top: 8px; left: 8px; right: 56px; z-index: 1000;
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      background: rgba(255,255,255,0.9); border: 1px solid rgba(80,105,130,0.18);
+      border-radius: 8px; padding: 6px 10px; font-size: 10px; color: #4d5d6e;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      bottom: auto !important;
+      width: max-content;
+      max-width: calc(100% - 64px);
+      pointer-events: none;
     }
-    .map-legend-row { display: flex; align-items: center; gap: 5px; margin: 2px 0; }
-    .map-legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .map-legend-title { font-weight: 700; color: #42596d; margin-right: 2px; }
+    .map-legend-row { display: inline-flex; align-items: center; gap: 4px; }
+    .map-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .map-toolbar {
+      position: absolute; top: 8px; right: 8px; z-index: 1001;
+      display: flex; gap: 6px;
+    }
+    .map-tool-btn {
+      border: 1px solid rgba(80,105,130,0.22);
+      background: rgba(255,255,255,0.94);
+      color: #31475d;
+      border-radius: 8px;
+      padding: 6px 9px;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .map-tool-btn.is-active {
+      background: #1f5f99;
+      color: #f4f8fc;
+      border-color: rgba(31,95,153,0.6);
+    }
+    .map-tool-btn:hover {
+      background: #ffffff;
+      color: #20384f;
+    }
+    .map-tool-btn.is-active:hover {
+      background: #184f7f;
+      color: #f4f8fc;
+    }
+    .map-lasso-box {
+      position: absolute;
+      border: 2px dashed rgba(31,95,153,0.9);
+      background: rgba(93,168,255,0.14);
+      pointer-events: none;
+      z-index: 1002;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+      }
+      .pbi-header {
+        height: auto;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        padding: 10px 12px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .pbi-header-title {
+        width: calc(100% - 28px);
+        white-space: normal;
+        line-height: 1.3;
+      }
+      .hdr-slicer {
+        min-width: 0;
+        width: calc(50% - 4px);
+        flex: 0 1 calc(50% - 4px);
+      }
+      #hdrDate {
+        width: 100%;
+        margin-left: 0 !important;
+        padding-top: 2px;
+      }
+      .main-row {
+        display: block;
+        overflow: visible;
+      }
+      .heatmap-panel {
+        flex: none;
+        width: 100%;
+        height: 58vh;
+        min-height: 420px;
+      }
+      .map-panel {
+        width: 100%;
+        height: 62vh;
+        min-height: 460px;
+        border-left: none;
+        border-top: 1px solid rgba(139,175,214,0.18);
+      }
+      .map-legend {
+        right: 8px;
+      }
+    }
+    @media (max-width: 560px) {
+      .hdr-slicer {
+        width: 100%;
+        flex-basis: 100%;
+      }
+    }
   </style>
 </head>
-<body style="margin:0;overflow:hidden;display:flex;flex-direction:column;height:100vh;background:#0c1522;">
+<body style="margin:0;overflow:hidden;display:flex;flex-direction:column;height:100vh;width:100vw;max-width:100vw;min-width:0;background:#0c1522;">
 
   <!-- Header with slicers -->
   <div class="pbi-header" id="hdr">
     <a class="pbi-header-back" href="../index.html" title="Back">&#8592;</a>
     <div class="pbi-header-title">Near-Realtime Daily Rainfall, Since 2002</div>
 
-    <!-- Gage multi-select -->
-    <div class="gage-slicer-wrap" style="width:148px;">
+    <div class="hdr-slicer" style="width:148px;">
       <div class="sl-lbl">Raingage, HCFCD</div>
-      <div class="gage-trigger" id="gageTrigger">All</div>
-      <div class="gage-dropdown" id="gageDropdown">
-        <div class="dd-all">
-          <label><input type="checkbox" id="gageAll" checked> Select All</label>
-        </div>
-        <div id="gageCheckboxes"></div>
-      </div>
+      <button type="button" class="hdr-slicer-btn" id="slGageBtn">All</button>
+      <div class="hdr-slicer-menu" id="slGageMenu"></div>
     </div>
 
     <!-- Event Category -->
     <div class="hdr-slicer" style="width:138px;">
       <div class="sl-lbl">Event Category</div>
-      <select id="slCat">
-        <option value="">All</option>
-        <option>Zero Rain</option>
-        <option>&lt;0.3 in</option>
-        <option>0.3-1.0 in</option>
-        <option>1.0-3.0 in</option>
-        <option>3.0-5.0 in</option>
-        <option>Over 5.0 in</option>
-      </select>
+      <button type="button" class="hdr-slicer-btn" id="slCatBtn">All</button>
+      <div class="hdr-slicer-menu" id="slCatMenu"></div>
     </div>
 
     <!-- Year-Mon -->
     <div class="hdr-slicer" style="width:114px;" id="slYMwrap">
       <div class="sl-lbl">Year-Mon</div>
-      <select id="slYM"><option value="">All</option></select>
+      <button type="button" class="hdr-slicer-btn" id="slYMBtn">All</button>
+      <div class="hdr-slicer-menu" id="slYMMenu"></div>
     </div>
 
     <!-- Sewer Basin -->
     <div class="hdr-slicer" style="width:118px;" id="slBasinWrap">
       <div class="sl-lbl">Sewer Basin</div>
-      <select id="slBasin"><option value="">All</option></select>
+      <button type="button" class="hdr-slicer-btn" id="slBasinBtn">All</button>
+      <div class="hdr-slicer-menu" id="slBasinMenu"></div>
     </div>
 
     <!-- WWTP -->
     <div class="hdr-slicer" style="width:142px;" id="slWWTPwrap">
       <div class="sl-lbl">WWTP</div>
-      <select id="slWWTP"><option value="">All</option></select>
+      <button type="button" class="hdr-slicer-btn" id="slWWTPBtn">69th Street</button>
+      <div class="hdr-slicer-menu" id="slWWTPMenu"></div>
     </div>
 
     <div style="margin-left:auto;font-size:11px;color:#6a8aaa;white-space:nowrap;" id="hdrDate"></div>
@@ -221,6 +450,10 @@
     <div class="map-panel">
       <div id="leaflet-map"></div>
       <div class="map-legend" id="mapLegend"></div>
+      <div class="map-toolbar" id="mapToolbar">
+        <button type="button" class="map-tool-btn" id="btnResetZoom" title="Fit the map to the current filtered gages">Reset Zoom</button>
+        <button type="button" class="map-tool-btn" id="btnLasso" title="Toggle lasso mode for multi-selecting gages">Lasso</button>
+      </div>
     </div>
 
   </div>
@@ -230,22 +463,26 @@ Components.applyChartDefaults();
 
 const rainfall = window.MOCK.Realtime_rainfall_hcfcd_daily;
 const gages    = window.MOCK.RainGauge_HCFCD;
-const basins   = window.MOCK.BasinUnique_Raingage;
 const meter    = window.MOCK.MeterBasin_RainGauge || [];
-const sso      = window.MOCK.vt_WW_SSO_Lisa;
 
 const gageMap  = {};
 gages.forEach(g => { gageMap[g.Raingage] = g; });
 
 // ── State ─────────────────────────────────────────────────────────
-let selGages   = new Set(gages.map(g => g.Raingage));  // all selected
-let selCat     = '';
-let selYM      = '';
-let selBasin   = '';
-let selWWTP    = '';
-let hoveredGage  = null;  // gage id being hovered  (tooltip + temporary heatmap filter)
-let clickedGage  = null;  // gage id clicked (persistent heatmap filter, cleared on re-click or map bg click)
-const markerRefs = {};    // gageId → Leaflet marker DOM element (for direct style updates)
+let selGages   = new Set();
+let selCats    = new Set();
+let selYMs     = new Set();
+let selBasins  = new Set();
+let selWWTPs   = new Set(['69th Street']);
+let mapSelections = []; // [{ gage, category? }]
+let mapPieEntries = new Map();
+let mapMarkerCenters = new Map();
+let mapMarkerLatLngs = new Map();
+let mapLassoMode = false;
+let mapLassoBoxEl = null;
+let mapLassoDrag = null;
+let suppressNextMapClear = false;
+let mapViewSig = '';
 
 // ── Category → colour (matching components.js) ────────────────────
 // Colors match PBI conditional formatting exactly; Over 5.0 adapted for dark bg
@@ -266,92 +503,243 @@ const CAT_TEXT = {
   'Over 5.0 in': '#ffffff',
 };
 
-// ── Populate Year-Mon slicer ───────────────────────────────────────
-const allYMs = [...new Set(rainfall.map(r => r.Year_Mon))].sort().reverse();
-const slYM = document.getElementById('slYM');
-allYMs.forEach(ym => { slYM.add(new Option(ym, ym)); });
+const slGageBtn = document.getElementById('slGageBtn');
+const slGageMenu = document.getElementById('slGageMenu');
+const slCatBtn = document.getElementById('slCatBtn');
+const slCatMenu = document.getElementById('slCatMenu');
+const slYMBtn = document.getElementById('slYMBtn');
+const slYMMenu = document.getElementById('slYMMenu');
+const slBasinBtn = document.getElementById('slBasinBtn');
+const slBasinMenu = document.getElementById('slBasinMenu');
+const slWWTPBtn = document.getElementById('slWWTPBtn');
+const slWWTPMenu = document.getElementById('slWWTPMenu');
+const btnResetZoom = document.getElementById('btnResetZoom');
+const btnLasso = document.getElementById('btnLasso');
+const allGages = [...new Set(rainfall.map(r => String(r.Gage)))].sort((a, b) => +a - +b);
 
-// ── Populate Basin slicer ─────────────────────────────────────────
-const allBasins = [...new Set(basins.map(b => b.METERBASIN))].sort();
-const slBasin = document.getElementById('slBasin');
-allBasins.forEach(b => { slBasin.add(new Option(b, b)); });
+const gagesByBasin = new Map();
+const gagesByWWTP = new Map();
 
-// ── Populate WWTP slicer from MeterBasin_RainGauge SERVICE_AR ─────
-const allWWTPs = [...new Set(meter.map(m => m.SERVICE_AR).filter(Boolean))].sort();
-const slWWTP = document.getElementById('slWWTP');
-allWWTPs.forEach(w => { slWWTP.add(new Option(w, w)); });
-
-// ── Gage multi-select dropdown ─────────────────────────────────────
-const gageCheckboxes = document.getElementById('gageCheckboxes');
-const gageAll        = document.getElementById('gageAll');
-const gageTrigger    = document.getElementById('gageTrigger');
-const gageDropdown   = document.getElementById('gageDropdown');
-
-gages.forEach(g => {
-  const lbl = document.createElement('label');
-  lbl.innerHTML = `<input type="checkbox" value="${g.Raingage}" checked> ${g.Raingage}`;
-  lbl.querySelector('input').addEventListener('change', () => { syncGageState(); render(); });
-  gageCheckboxes.appendChild(lbl);
-});
-
-gageAll.addEventListener('change', () => {
-  gageCheckboxes.querySelectorAll('input').forEach(cb => { cb.checked = gageAll.checked; });
-  syncGageState(); render();
-});
-
-function syncGageState() {
-  const cbs = [...gageCheckboxes.querySelectorAll('input')];
-  selGages = new Set(cbs.filter(cb => cb.checked).map(cb => +cb.value));
-  const all = cbs.every(cb => cb.checked);
-  const none = cbs.every(cb => !cb.checked);
-  gageAll.checked = all;
-  gageAll.indeterminate = !all && !none;
-  gageTrigger.childNodes[0].textContent = all ? 'All' : (selGages.size === 0 ? 'None' : `${selGages.size} selected`);
+for (const row of meter) {
+  if (row.METERBASIN) {
+    if (!gagesByBasin.has(row.METERBASIN)) gagesByBasin.set(row.METERBASIN, new Set());
+    gagesByBasin.get(row.METERBASIN).add(String(row.RAINGAGEID));
+  }
+  if (row.SERVICE_AR) {
+    if (!gagesByWWTP.has(row.SERVICE_AR)) gagesByWWTP.set(row.SERVICE_AR, new Set());
+    gagesByWWTP.get(row.SERVICE_AR).add(String(row.RAINGAGEID));
+  }
 }
 
-// Toggle dropdown on trigger click
-gageTrigger.addEventListener('click', e => {
-  e.stopPropagation();
-  gageDropdown.classList.toggle('open');
-});
-document.addEventListener('click', () => { gageDropdown.classList.remove('open'); });
-gageDropdown.addEventListener('click', e => e.stopPropagation());
+function intersectSets(a, b) {
+  return new Set([...a].filter(v => b.has(v)));
+}
+
+function unionMappedGages(selectedValues, lookupMap) {
+  const merged = new Set();
+  selectedValues.forEach(value => {
+    const gagesForValue = lookupMap.get(value);
+    if (!gagesForValue) return;
+    gagesForValue.forEach(gage => merged.add(gage));
+  });
+  return merged;
+}
+
+function reconcileSet(currentSet, options) {
+  const optionSet = new Set(options.map(String));
+  return new Set([...currentSet].filter(value => optionSet.has(String(value))));
+}
+
+function summarizeSelection(selectedSet, { allLabel = 'All' } = {}) {
+  if (!selectedSet.size) return allLabel;
+  if (selectedSet.size === 1) return [...selectedSet][0];
+  return `${selectedSet.size} selected`;
+}
+
+function allowedGages({ gages = selGages, basins = selBasins, wwtps = selWWTPs } = {}) {
+  let allowed = new Set(allGages);
+  if (gages.size) allowed = intersectSets(allowed, gages);
+  if (basins.size) allowed = intersectSets(allowed, unionMappedGages(basins, gagesByBasin));
+  if (wwtps.size) allowed = intersectSets(allowed, unionMappedGages(wwtps, gagesByWWTP));
+  return allowed;
+}
+
+function selectionKey(sel) {
+  return `${sel.gage}|${sel.category || '*'}`;
+}
+
+function hasMapSelections() {
+  return mapSelections.length > 0;
+}
+
+function matchesMapSelection(row, sel) {
+  return row.Gage === sel.gage && (!sel.category || row.Event_Category === sel.category);
+}
+
+function isSliceSelected(gageId, cat) {
+  return mapSelections.some(sel => sel.gage === gageId && sel.category === cat);
+}
+
+function isGageSelected(gageId) {
+  return mapSelections.some(sel => sel.gage === gageId);
+}
+
+function setMapSelections(nextSelections, { replace = true } = {}) {
+  const merged = replace ? nextSelections : [...mapSelections, ...nextSelections];
+  const unique = new Map();
+  merged.forEach(sel => unique.set(selectionKey(sel), sel));
+  mapSelections = [...unique.values()];
+}
+
+const slicers = {
+  gage: { btn: slGageBtn, menu: slGageMenu, allLabel: 'All', summary: () => summarizeSelection(selGages) },
+  cat: { btn: slCatBtn, menu: slCatMenu, allLabel: 'All', summary: () => summarizeSelection(selCats) },
+  ym: { btn: slYMBtn, menu: slYMMenu, allLabel: 'All', summary: () => summarizeSelection(selYMs) },
+  basin: { btn: slBasinBtn, menu: slBasinMenu, allLabel: 'All', summary: () => summarizeSelection(selBasins) },
+  wwtp: { btn: slWWTPBtn, menu: slWWTPMenu, allLabel: 'All', summary: () => summarizeSelection(selWWTPs) },
+};
+
+let openSlicerKey = null;
+const slicerOptions = { gage: [], cat: [], ym: [], basin: [], wwtp: [] };
 
 // ── Filter data ───────────────────────────────────────────────────
-function filterData() {
-  let d = rainfall;
+function filterData({ skipGage = false, skipCat = false, skipYM = false, skipBasin = false, skipWWTP = false } = {}) {
+  const gageSet = allowedGages({
+    gages: skipGage ? new Set() : selGages,
+    basins: skipBasin ? new Set() : selBasins,
+    wwtps: skipWWTP ? new Set() : selWWTPs,
+  });
 
-  // Gage filter
-  if (selGages.size < gages.length) d = d.filter(r => selGages.has(r.Gage));
+  return rainfall.filter(r =>
+    gageSet.has(String(r.Gage)) &&
+    (skipCat || !selCats.size || selCats.has(String(r.Event_Category))) &&
+    (skipYM || !selYMs.size || selYMs.has(String(r.Year_Mon)))
+  );
+}
 
-  // Category filter
-  if (selCat) d = d.filter(r => r.Event_Category === selCat);
+function applyMapSelection(data) {
+  if (!hasMapSelections()) return data;
+  return data.filter(r => mapSelections.some(sel => matchesMapSelection(r, sel)));
+}
 
-  // Year-Mon filter
-  if (selYM) d = d.filter(r => r.Year_Mon === selYM);
+function getSelectionSet(key) {
+  if (key === 'gage') return selGages;
+  if (key === 'cat') return selCats;
+  if (key === 'ym') return selYMs;
+  if (key === 'basin') return selBasins;
+  return selWWTPs;
+}
 
-  // Basin → resolve to gage
-  if (selBasin) {
-    const mapping = basins.find(b => b.METERBASIN === selBasin);
-    if (mapping) d = d.filter(r => r.Gage === mapping.RAINGAGEID);
+function setSelectionSet(key, nextSet) {
+  if (key === 'gage') selGages = nextSet;
+  else if (key === 'cat') selCats = nextSet;
+  else if (key === 'ym') selYMs = nextSet;
+  else if (key === 'basin') selBasins = nextSet;
+  else selWWTPs = nextSet;
+}
+
+function updateSlicerButtonLabel(key) {
+  slicers[key].btn.textContent = slicers[key].summary();
+}
+
+function renderSlicerMenu(key) {
+  const menu = slicers[key].menu;
+  const selectedSet = getSelectionSet(key);
+  const options = slicerOptions[key];
+  menu.innerHTML = '';
+
+  const hint = document.createElement('div');
+  hint.className = 'hdr-slicer-hint';
+  hint.textContent = 'Ctrl/Cmd-click to multi-select';
+  menu.appendChild(hint);
+
+  const makeItem = (label, value, selected, extraClass = '') => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `hdr-slicer-item ${selected ? 'is-selected' : ''} ${extraClass}`.trim();
+    btn.dataset.value = value;
+    btn.innerHTML = `<span class="hdr-slicer-item-label">${label}</span>`;
+    return btn;
+  };
+
+  menu.appendChild(makeItem(slicers[key].allLabel, '__all__', selectedSet.size === 0, 'is-all'));
+  options.forEach(option => {
+    menu.appendChild(makeItem(String(option), String(option), selectedSet.has(String(option))));
+  });
+  updateSlicerButtonLabel(key);
+}
+
+function closeOpenSlicer() {
+  if (!openSlicerKey) return;
+  slicers[openSlicerKey].btn.closest('.hdr-slicer').classList.remove('is-open');
+  openSlicerKey = null;
+}
+
+function openSlicer(key) {
+  if (openSlicerKey === key) {
+    closeOpenSlicer();
+    return;
   }
+  closeOpenSlicer();
+  slicers[key].btn.closest('.hdr-slicer').classList.add('is-open');
+  openSlicerKey = key;
+}
 
-  // WWTP filter: SERVICE_AR → RAINGAGEID → filter rainfall to those gages
-  if (selWWTP) {
-    const serviceGages = new Set(
-      meter.filter(m => m.SERVICE_AR === selWWTP).map(m => m.RAINGAGEID)
-    );
-    d = d.filter(r => serviceGages.has(r.Gage));
-  }
+function syncSlicerOptions() {
+  let changed = false;
 
-  return d;
+  const gageOptions = [...new Set(filterData({ skipGage: true }).map(r => String(r.Gage)))].sort((a, b) => +a - +b);
+  const nextGages = reconcileSet(selGages, gageOptions);
+  if (nextGages.size !== selGages.size || [...nextGages].some(v => !selGages.has(v))) { selGages = nextGages; changed = true; }
+  slicerOptions.gage = gageOptions;
+
+  const catOptions = PIE_CATS.filter(cat => filterData({ skipCat: true }).some(r => r.Event_Category === cat)).map(String);
+  const nextCats = reconcileSet(selCats, catOptions);
+  if (nextCats.size !== selCats.size || [...nextCats].some(v => !selCats.has(v))) { selCats = nextCats; changed = true; }
+  slicerOptions.cat = catOptions;
+
+  const ymOptions = [...new Set(filterData({ skipYM: true }).map(r => String(r.Year_Mon)))].sort().reverse();
+  const nextYMs = reconcileSet(selYMs, ymOptions);
+  if (nextYMs.size !== selYMs.size || [...nextYMs].some(v => !selYMs.has(v))) { selYMs = nextYMs; changed = true; }
+  slicerOptions.ym = ymOptions;
+
+  const basinGages = new Set(filterData({ skipBasin: true }).map(r => String(r.Gage)));
+  const basinOptions = [...new Set(
+    meter
+      .filter(row => basinGages.has(String(row.RAINGAGEID)))
+      .filter(row => !selWWTPs.size || selWWTPs.has(row.SERVICE_AR))
+      .map(row => String(row.METERBASIN))
+      .filter(Boolean)
+  )].sort();
+  const nextBasins = reconcileSet(selBasins, basinOptions);
+  if (nextBasins.size !== selBasins.size || [...nextBasins].some(v => !selBasins.has(v))) { selBasins = nextBasins; changed = true; }
+  slicerOptions.basin = basinOptions;
+
+  const wwtpGages = new Set(filterData({ skipWWTP: true }).map(r => String(r.Gage)));
+  const wwtpOptions = [...new Set(
+    meter
+      .filter(row => wwtpGages.has(String(row.RAINGAGEID)))
+      .filter(row => !selBasins.size || selBasins.has(row.METERBASIN))
+      .map(row => String(row.SERVICE_AR))
+      .filter(Boolean)
+  )].sort();
+  const nextWWTPs = reconcileSet(selWWTPs, wwtpOptions);
+  if (nextWWTPs.size !== selWWTPs.size || [...nextWWTPs].some(v => !selWWTPs.has(v))) { selWWTPs = nextWWTPs; changed = true; }
+  slicerOptions.wwtp = wwtpOptions;
+
+  Object.keys(slicers).forEach(renderSlicerMenu);
+
+  return changed;
+}
+
+function ensureConsistentState() {
+  let safety = 0;
+  while (syncSlicerOptions() && safety < 5) safety += 1;
 }
 
 // ── Render heatmap ────────────────────────────────────────────────
 function renderHeatmap(data) {
-  // Click takes priority over hover for heatmap cross-filter
-  const activeGage = clickedGage !== null ? clickedGage : hoveredGage;
-  if (activeGage !== null) data = data.filter(r => r.Gage === activeGage);
+  data = applyMapSelection(data);
   const inner = document.getElementById('heatmapInner');
   const gagesInData = new Set(data.map(r => r.Gage));
   const displayGages = gages
@@ -361,11 +749,18 @@ function renderHeatmap(data) {
 
   // Title
   const titleEl = document.getElementById('hmTitle');
-  if (selGages.size === 1) {
-    const g = [...selGages][0];
-    titleEl.textContent = `Daily Rainfall — Gage ${g}: ${gageMap[g]?.LOCATION || ''}`;
+  if (mapSelections.length === 1 && mapSelections[0].category) {
+    titleEl.textContent = `Daily Rainfall — Gage ${mapSelections[0].gage} | ${mapSelections[0].category}`;
+  } else if (mapSelections.length === 1 && !mapSelections[0].category) {
+    titleEl.textContent = `Daily Rainfall — Gage ${mapSelections[0].gage}`;
+  } else if (mapSelections.length > 1) {
+    titleEl.textContent = `Daily Rainfall — ${mapSelections.length} Map Selections`;
+  } else if (selGages.size === 1) {
+    const selectedGage = [...selGages][0];
+    titleEl.textContent = `Daily Rainfall — Gage ${selectedGage}: ${gageMap[selectedGage]?.LOCATION || ''}`;
   } else {
-    titleEl.textContent = `Daily Rainfall by Gage — ${selGages.size === gages.length ? 'All Gages' : selGages.size + ' Gages'}`;
+    const activeCount = displayGages.length;
+    titleEl.textContent = `Daily Rainfall by Gage — ${activeCount === gages.length ? 'All Gages' : activeCount + ' Gages'}`;
   }
 
   // Build lookup
@@ -380,44 +775,43 @@ function renderHeatmap(data) {
     return;
   }
 
-  const nGages = displayGages.length;
-  const CELL_W = Math.max(24, Math.min(40, Math.floor((718 - 62) / nGages)));
-  const CELL_H = 16;
-
   let html = `
-    <div style="overflow:auto;height:100%;font-size:10px;">
-      <table style="border-collapse:collapse;white-space:nowrap;">
+      <table class="daily-grid">
         <thead>
           <tr>
-            <th style="position:sticky;left:0;top:0;z-index:3;background:#162436;padding:3px 6px;min-width:62px;text-align:left;color:#8aaccc;font-size:9px;border-bottom:1px solid rgba(139,175,214,0.18);">Date</th>
-            ${displayGages.map(g => `<th style="position:sticky;top:0;z-index:2;background:#162436;padding:2px 1px;min-width:${CELL_W}px;text-align:center;color:#8aaccc;font-size:9px;border-bottom:1px solid rgba(139,175,214,0.18);">${g}</th>`).join('')}
+            <th class="corner">Date</th>
+            ${displayGages.map(g => `<th>${g}</th>`).join('')}
           </tr>
         </thead>
         <tbody>`;
 
   for (const date of allDates) {
     html += `<tr>
-      <td style="position:sticky;left:0;background:#162436;padding:1px 6px;color:#b4c0d0;font-weight:600;font-size:9px;border-bottom:1px solid rgba(139,175,214,0.06);">${date}</td>`;
+      <th scope="row">${date}</th>`;
     for (const g of displayGages) {
       const row  = lookup[date + '|' + g];
       const rain = row ? row.rain : null;
       const cat  = row ? row.Event_Category : null;
-      const bg   = cat ? (CAT_COLOR[cat] || '#1a2a3a') : '#1a2a3a';
-      const txt  = cat ? (CAT_TEXT[cat] || '#ffffff') : '#4a6080';
+      const bg   = cat ? (CAT_COLOR[cat] || '#f6fafc') : '#f8fbfe';
+      const txt  = cat ? (CAT_TEXT[cat] || '#ffffff') : 'rgba(22,38,56,0.18)';
       const disp = rain !== null ? (rain === 0 ? '·' : rain.toFixed(2)) : '';
+      const isSelected = mapSelections.some(sel => sel.gage === g && (!sel.category || sel.category === cat));
       const tip  = `${g}: ${cat || 'No data'} (${rain !== null ? rain + ' in' : 'N/A'})`;
-      html += `<td style="background:${bg};color:${txt};text-align:center;padding:0;height:${CELL_H}px;border:1px solid rgba(0,0,0,0.18);font-size:8px;" title="${tip}">${disp}</td>`;
+      const classes = [
+        isSelected ? 'is-selected' : '',
+        rain === null ? 'is-empty' : '',
+      ].filter(Boolean).join(' ');
+      html += `<td class="${classes}" style="background:${bg};color:${txt};" title="${tip}">${disp}</td>`;
     }
     html += '</tr>';
   }
 
   html += `</tbody></table>
-    <div style="display:flex;gap:8px;padding:5px 6px;flex-wrap:wrap;background:#0f1e2e;position:sticky;bottom:0;">
-      ${Object.entries(CAT_COLOR).map(([c, col]) => `<span style="display:flex;align-items:center;gap:3px;font-size:9px;color:#b4c0d0;">
-        <span style="display:inline-block;width:10px;height:10px;background:${col};border-radius:2px;"></span>${c}
+    <div class="heatmap-legend">
+      ${Object.entries(CAT_COLOR).map(([c, col]) => `<span class="heatmap-legend-item">
+        <span class="heatmap-legend-swatch" style="background:${col};"></span>${c}
       </span>`).join('')}
-    </div>
-  </div>`;
+    </div>`;
 
   inner.innerHTML = html;
 }
@@ -428,10 +822,11 @@ const map = L.map('leaflet-map', {
   zoom: 10,
   zoomControl: true,
   attributionControl: true,
+  fadeAnimation: false,
 });
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap contributors',
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
   maxZoom: 18,
 }).addTo(map);
 
@@ -439,55 +834,73 @@ const markerLayer = L.layerGroup().addTo(map);
 
 // Category index array — avoids HTML-encoding issues in SVG data-* attributes
 const PIE_CATS = ['Zero Rain', '<0.3 in', '0.3-1.0 in', '1.0-3.0 in', '3.0-5.0 in', 'Over 5.0 in'];
-const PIE_R    = 13;
-const LABEL_H  = 12;  // px reserved above the circle for the gage-number label
+
+function pieGeometry(visibleCount) {
+  if (hasMapSelections() || visibleCount <= 6) {
+    return { radius: 28, labelH: 18, labelFont: 11, labelCharW: 8, labelMinW: 40 };
+  }
+  if (selGages.size || selCats.size || selYMs.size || selBasins.size || selWWTPs.size || visibleCount <= 14) {
+    return { radius: 24, labelH: 17, labelFont: 10, labelCharW: 7.5, labelMinW: 36 };
+  }
+  if (visibleCount <= 24) {
+    return { radius: 21, labelH: 16, labelFont: 9.5, labelCharW: 7, labelMinW: 33 };
+  }
+  return { radius: 18, labelH: 14, labelFont: 8.5, labelCharW: 7, labelMinW: 30 };
+}
 
 // Zero Rain is near-black on dark tile — use visible grey for the map pie specifically
 function pieColor(cat) {
   return cat === 'Zero Rain' ? '#4a5568' : (CAT_COLOR[cat] || '#4a5568');
 }
 
-function makePieSVG(gageId, counts) {
-  const cx   = PIE_R + 1;
-  const cy   = LABEL_H + PIE_R + 1;   // circle centre sits below the label row
-  const svgW = (PIE_R + 1) * 2;
-  const svgH = LABEL_H + svgW;
+function makePieSVG(gageId, counts, geom) {
+  const { radius, labelH, labelFont, labelCharW, labelMinW } = geom;
+  const cx   = radius + 1;
+  const cy   = labelH + radius + 1;
+  const svgW = (radius + 1) * 2;
+  const svgH = labelH + svgW;
+  const gageSelected = isGageSelected(gageId);
+  const svgOpacity = hasMapSelections() && !gageSelected ? 0.42 : 1;
 
   const nonZero = PIE_CATS.filter(c => counts[c] > 0);
-  const N       = nonZero.length;
-  if (N === 0) return '';
+  if (!nonZero.length) return '';
 
   let paths = '';
 
-  if (N === 1) {
+  if (nonZero.length === 1) {
     // Single category → solid circle
     const cat = nonZero[0];
-    const idx = PIE_CATS.indexOf(cat);
-    paths += `<circle cx="${cx}" cy="${cy}" r="${PIE_R}" fill="${pieColor(cat)}" data-gage="${gageId}" data-catidx="${idx}" style="cursor:pointer;"/>`;
+    const stroke = isSliceSelected(gageId, cat) ? '#ffffff' : 'rgba(0,0,0,0.22)';
+    const width = isSliceSelected(gageId, cat) ? '2.5' : '0.8';
+    paths += `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="${pieColor(cat)}" stroke="${stroke}" stroke-width="${width}" data-gage="${gageId}" data-cat="${cat}" style="cursor:pointer;"/>`;
   } else {
-    // Equal slice per existing category (matches PBI fixed bubbleSize=70 behaviour)
-    const sweep = (2 * Math.PI) / N;
     let angle   = -Math.PI / 2;
-    PIE_CATS.forEach((cat, idx) => {
+    PIE_CATS.forEach(cat => {
       if (!counts[cat]) return;
-      const x1 = cx + PIE_R * Math.cos(angle);
-      const y1 = cy + PIE_R * Math.sin(angle);
+      const sweep = (2 * Math.PI) / nonZero.length;
+      const x1 = cx + radius * Math.cos(angle);
+      const y1 = cy + radius * Math.sin(angle);
       const end = angle + sweep;
-      const x2  = cx + PIE_R * Math.cos(end);
-      const y2  = cy + PIE_R * Math.sin(end);
+      const x2  = cx + radius * Math.cos(end);
+      const y2  = cy + radius * Math.sin(end);
       const lg  = sweep > Math.PI ? 1 : 0;
-      paths += `<path d="M${cx},${cy}L${x1.toFixed(2)},${y1.toFixed(2)}A${PIE_R},${PIE_R} 0 ${lg},1 ${x2.toFixed(2)},${y2.toFixed(2)}Z" fill="${pieColor(cat)}" data-gage="${gageId}" data-catidx="${idx}" style="cursor:pointer;"/>`;
+      const selected = isSliceSelected(gageId, cat);
+      paths += `<path d="M${cx},${cy}L${x1.toFixed(2)},${y1.toFixed(2)}A${radius},${radius} 0 ${lg},1 ${x2.toFixed(2)},${y2.toFixed(2)}Z" fill="${pieColor(cat)}" stroke="${selected ? '#ffffff' : 'rgba(0,0,0,0.22)'}" stroke-width="${selected ? '2.5' : '0.8'}" data-gage="${gageId}" data-cat="${cat}" style="cursor:pointer;"/>`;
       angle = end;
     });
   }
 
-  // Outline ring (data-role="ring" for selection highlight updates)
-  paths += `<circle cx="${cx}" cy="${cy}" r="${PIE_R}" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1" data-role="ring" pointer-events="none"/>`;
+  const ringStroke = gageSelected ? '#ffffff' : 'rgba(255,255,255,0.45)';
+  const ringWidth = gageSelected ? '2.6' : '1';
+  paths += `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="none" stroke="${ringStroke}" stroke-width="${ringWidth}" pointer-events="none"/>`;
 
-  // Gage label ABOVE the circle (matching PBI categoryLabels position)
-  paths += `<text x="${cx}" y="9" text-anchor="middle" font-size="8" font-weight="700" fill="#f1f5fb" font-family="Arial,sans-serif" pointer-events="none">${gageId}</text>`;
+  const label = String(gageId);
+  const labelW = Math.max(labelMinW, 12 + label.length * labelCharW);
+  const labelX = cx - labelW / 2;
+  paths += `<rect x="${labelX}" y="0.5" rx="5" ry="5" width="${labelW}" height="${labelH - 1}" fill="#45a56a" stroke="rgba(255,255,255,0.55)" stroke-width="0.6" pointer-events="none"/>`;
+  paths += `<text x="${cx}" y="${Math.max(10, labelH * 0.7)}" text-anchor="middle" font-size="${labelFont}" font-weight="700" fill="#f1f5fb" font-family="Arial,sans-serif" pointer-events="none">${gageId}</text>`;
 
-  return `<svg width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg" pointer-events="all" style="overflow:visible;">${paths}</svg>`;
+  return `<svg width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg" data-gage-root="${gageId}" data-pie-r="${radius}" data-label-h="${labelH}" pointer-events="all" style="overflow:visible;opacity:${svgOpacity};">${paths}</svg>`;
 }
 
 // Floating tooltip matching PBI style
@@ -509,160 +922,365 @@ function showPieTip(e, gageId, cat, lat, lon) {
 }
 function hidePieTip() { if (_pieTip) _pieTip.style.display = 'none'; }
 
-// ── Marker selection helpers ──────────────────────────────────────
-function setMarkerSelected(gageId, selected) {
-  const el = markerRefs[gageId];
-  if (!el) return;
-  const ring = el.querySelector('[data-role="ring"]');
-  if (ring) {
-    ring.setAttribute('stroke',       selected ? '#ffffff'              : 'rgba(255,255,255,0.35)');
-    ring.setAttribute('stroke-width', selected ? '2.5'                 : '1');
+function sliceFromPointerEvent(el, entries, ev) {
+  if (!el || !ev) return null;
+  const svgEl = el.matches?.('svg[data-gage-root]') ? el : el.querySelector?.('svg[data-gage-root]');
+  const radius = Number(svgEl?.getAttribute('data-pie-r')) || 18;
+  const labelH = Number(svgEl?.getAttribute('data-label-h')) || 14;
+  const rect = el.getBoundingClientRect();
+  const dx = ev.clientX - (rect.left + radius + 1);
+  const dy = ev.clientY - (rect.top  + labelH + radius + 1);
+  if (Math.sqrt(dx * dx + dy * dy) > radius + 2) return null;
+  if (!entries.length) return null;
+  if (entries.length === 1) return entries[0].cat;
+  const angle = Math.atan2(dy, dx);
+  const norm  = ((angle + Math.PI / 2) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+  let acc = 0;
+  for (const entry of entries) {
+    acc += 1 / entries.length;
+    if (norm / (2 * Math.PI) <= acc) return entry.cat;
   }
+  return entries[entries.length - 1].cat;
+}
+
+function updateDebugState() {
+  window.__rainwiseDailyState = {
+    selGages: [...selGages],
+    selCats: [...selCats],
+    selYMs: [...selYMs],
+    selBasins: [...selBasins],
+    selWWTPs: [...selWWTPs],
+    mapSelections,
+    mapLassoMode,
+  };
+}
+
+function handleMapSliceSelection(gageId, cat, { append = false } = {}) {
+  if (!cat) return;
+  const next = { gage: gageId, category: cat };
+  const exists = mapSelections.some(sel => selectionKey(sel) === selectionKey(next));
+  if (append) {
+    mapSelections = exists
+      ? mapSelections.filter(sel => selectionKey(sel) !== selectionKey(next))
+      : [...mapSelections, next];
+  } else {
+    mapSelections = exists && mapSelections.length === 1 ? [] : [next];
+  }
+  render();
+}
+
+function handleMapGageSelection(gageIds, { append = false } = {}) {
+  const nextSelections = gageIds.map(gageId => ({ gage: gageId }));
+  if (!append) {
+    mapSelections = nextSelections;
+    render();
+    return;
+  }
+  const toggled = new Map(mapSelections.map(sel => [selectionKey(sel), sel]));
+  nextSelections.forEach(sel => {
+    const key = selectionKey(sel);
+    if (toggled.has(key)) toggled.delete(key);
+    else toggled.set(key, sel);
+  });
+  mapSelections = [...toggled.values()];
+  render();
+}
+
+function setLassoMode(active) {
+  mapLassoMode = active;
+  btnLasso.classList.toggle('is-active', active);
+  const container = map.getContainer();
+  container.style.cursor = active ? 'crosshair' : '';
+  if (active) map.dragging.disable();
+  else map.dragging.enable();
+}
+
+function removeLassoBox() {
+  if (mapLassoBoxEl) mapLassoBoxEl.remove();
+  mapLassoBoxEl = null;
+}
+
+function markerBoundsForSelections(selections = mapSelections) {
+  const pts = selections
+    .map(sel => mapMarkerLatLngs.get(sel.gage))
+    .filter(Boolean);
+  if (!pts.length) return null;
+  return L.latLngBounds(pts);
+}
+
+function fitMapToSelections({ force = false } = {}) {
+  const bounds = markerBoundsForSelections();
+  if (!bounds || !bounds.isValid()) return false;
+  const hasSingle = bounds.getNorth() === bounds.getSouth() && bounds.getEast() === bounds.getWest();
+  if (hasSingle) {
+    map.setView(bounds.getCenter(), force ? 12 : Math.max(map.getZoom(), 12));
+  } else {
+    map.fitBounds(bounds.pad(0.18), { maxZoom: 12, padding: [18, 18] });
+  }
+  return true;
+}
+
+function fitMapToFilteredGages(force = false) {
+  const pts = [...mapMarkerLatLngs.values()];
+  if (!pts.length) {
+    map.setView([29.76, -95.37], 10);
+    return;
+  }
+  const bounds = L.latLngBounds(pts);
+  if (!bounds.isValid()) return;
+  const hasSingle = bounds.getNorth() === bounds.getSouth() && bounds.getEast() === bounds.getWest();
+  if (hasSingle) {
+    map.setView(bounds.getCenter(), force ? 12 : Math.max(map.getZoom(), 11));
+  } else {
+    map.fitBounds(bounds.pad(0.14), { maxZoom: 11, padding: [28, 28] });
+  }
+}
+
+function refreshMarkerCenters() {
+  mapMarkerCenters = new Map(
+    [...mapMarkerLatLngs.entries()].map(([gageId, latLng]) => [gageId, map.latLngToContainerPoint(latLng)])
+  );
+}
+
+function markerContextFromEvent(ev) {
+  const target = ev?.target;
+  if (!(target instanceof Element)) return null;
+  const markerEl = target.closest('.pie-marker');
+  const svgEl = target.closest('svg[data-gage-root]');
+  if (!markerEl || !svgEl) return null;
+  const gageId = Number(svgEl.getAttribute('data-gage-root'));
+  return {
+    entries: mapPieEntries.get(gageId) || [],
+    gageId,
+    markerEl,
+  };
 }
 
 function renderMap(data) {
   markerLayer.clearLayers();
-  // Reset DOM refs — markers are about to be recreated
-  Object.keys(markerRefs).forEach(k => delete markerRefs[k]);
+  mapPieEntries = new Map();
+  mapMarkerCenters = new Map();
+  mapMarkerLatLngs = new Map();
 
-  // Per-gage: which categories exist (≥1 day) in filtered data
+  // Per-gage: category counts in current slicer-filtered data
   const gageCounts = {};
   data.forEach(r => {
     if (!gageCounts[r.Gage]) gageCounts[r.Gage] = {};
     gageCounts[r.Gage][r.Event_Category] = (gageCounts[r.Gage][r.Event_Category] || 0) + 1;
   });
 
-  gages.forEach(g => {
-    if (!g.LATITUDE || !g.LONGITUDE) return;
-    if (selGages.size > 0 && !selGages.has(g.Raingage)) return;
+  const visibleGages = gages.filter(g => {
+    if (!g.LATITUDE || !g.LONGITUDE) return false;
+    if (selGages.size && !selGages.has(String(g.Raingage))) return false;
+    return Boolean(gageCounts[g.Raingage]);
+  });
+  const geom = pieGeometry(visibleGages.length);
+
+  visibleGages.forEach(g => {
     const counts = gageCounts[g.Raingage];
-    if (!counts) return;
+    const entries = PIE_CATS.filter(c => counts[c] > 0).map(cat => ({ cat, count: counts[cat] }));
+    mapPieEntries.set(g.Raingage, entries);
+    mapMarkerLatLngs.set(g.Raingage, L.latLng(g.LATITUDE, g.LONGITUDE));
 
     const icon = L.divIcon({
-      html:       makePieSVG(g.Raingage, counts),
+      html:       makePieSVG(g.Raingage, counts, geom),
       className:  'pie-marker',
-      iconSize:   [(PIE_R + 1) * 2, LABEL_H + (PIE_R + 1) * 2],
-      iconAnchor: [PIE_R + 1, LABEL_H + PIE_R + 1],   // anchor = circle centre
+      iconSize:   [(geom.radius + 1) * 2, geom.labelH + (geom.radius + 1) * 2],
+      iconAnchor: [geom.radius + 1, geom.labelH + geom.radius + 1],
     });
 
     const marker = L.marker([g.LATITUDE, g.LONGITUDE], { icon });
     marker.addTo(markerLayer);
-
-    marker.on('add', function () {
-      const self = this;
-      setTimeout(function () {
-        const el = self.getElement();
-        if (!el) return;
-        markerRefs[g.Raingage] = el;
-        if (g.Raingage === clickedGage) setMarkerSelected(g.Raingage, true);
-
-        // Geometry-based slice detection — bypasses SVG pointer-events entirely.
-        // Leaflet fires events reliably on the DivIcon container; we do the math.
-        const CX = PIE_R + 1;
-        const CY = LABEL_H + PIE_R + 1;
-        const nonZero = PIE_CATS.filter(c => counts[c] > 0);
-        const N = nonZero.length;
-
-        function sliceFromEvent(ev) {
-          const rect = el.getBoundingClientRect();
-          const dx = ev.clientX - (rect.left + CX);
-          const dy = ev.clientY - (rect.top  + CY);
-          if (Math.sqrt(dx * dx + dy * dy) > PIE_R + 2) return null;
-          if (N === 0) return null;
-          if (N === 1) return nonZero[0];
-          const angle = Math.atan2(dy, dx);
-          const norm  = ((angle + Math.PI / 2) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
-          return nonZero[Math.min(Math.floor(norm / (2 * Math.PI / N)), N - 1)];
-        }
-
-        el.addEventListener('mousemove', function (ev) {
-          const cat = sliceFromEvent(ev);
-          if (!cat) {
-            hidePieTip();
-            if (hoveredGage === g.Raingage) { hoveredGage = null; renderHeatmap(filterData()); }
-            return;
-          }
-          if (hoveredGage !== g.Raingage) { hoveredGage = g.Raingage; renderHeatmap(filterData()); }
-          showPieTip(ev, g.Raingage, cat, g.LATITUDE, g.LONGITUDE);
-        });
-
-        el.addEventListener('mouseleave', function () {
-          hidePieTip();
-          if (hoveredGage === g.Raingage) { hoveredGage = null; renderHeatmap(filterData()); }
-        });
-
-        // ── Click: persistent heatmap filter + selection ring ──
-        el.addEventListener('click', function (ev) {
-          ev.stopPropagation();
-          const gid = g.Raingage;
-          if (clickedGage === gid) {
-            setMarkerSelected(gid, false);
-            clickedGage = null;
-          } else {
-            if (clickedGage !== null) setMarkerSelected(clickedGage, false);
-            clickedGage = gid;
-            setMarkerSelected(gid, true);
-          }
-          renderHeatmap(filterData());
-        });
-      }, 0);
-    });
   });
 
   // Legend
   document.getElementById('mapLegend').innerHTML =
+    `<span class="map-legend-title">Event Category</span>` +
     PIE_CATS.map(c => `<div class="map-legend-row"><span class="map-legend-dot" style="background:${pieColor(c)};"></span>${c}</div>`).join('');
 }
 
 // Click on map background clears any persistent gage selection
 map.on('click', function () {
-  if (clickedGage !== null) {
-    setMarkerSelected(clickedGage, false);
-    clickedGage = null;
-    renderHeatmap(filterData());
+  if (suppressNextMapClear) {
+    suppressNextMapClear = false;
+    return;
+  }
+  if (hasMapSelections()) {
+    mapSelections = [];
+    render();
+  }
+});
+
+const markerPaneEl = map.getPanes().markerPane;
+markerPaneEl.addEventListener('mousemove', function (ev) {
+  const ctx = markerContextFromEvent(ev);
+  if (!ctx) return hidePieTip();
+  const cat = sliceFromPointerEvent(ctx.markerEl, ctx.entries, ev);
+  const gage = gageMap[ctx.gageId];
+  if (!cat || !gage) return hidePieTip();
+  showPieTip(ev, ctx.gageId, cat, gage.LATITUDE, gage.LONGITUDE);
+}, true);
+
+markerPaneEl.addEventListener('mouseleave', function () {
+  hidePieTip();
+}, true);
+
+markerPaneEl.addEventListener('click', function (ev) {
+  const ctx = markerContextFromEvent(ev);
+  if (!ctx) return;
+  if (mapLassoMode) return;
+  ev.stopPropagation();
+  ev.preventDefault();
+  suppressNextMapClear = true;
+  handleMapSliceSelection(ctx.gageId, sliceFromPointerEvent(ctx.markerEl, ctx.entries, ev), {
+    append: !!(ev.metaKey || ev.ctrlKey || ev.shiftKey),
+  });
+}, true);
+
+map.getContainer().addEventListener('mousedown', function (ev) {
+  if (!mapLassoMode || ev.button !== 0) return;
+  const rect = map.getContainer().getBoundingClientRect();
+  mapLassoDrag = {
+    append: !!(ev.metaKey || ev.ctrlKey || ev.shiftKey),
+    startX: ev.clientX - rect.left,
+    startY: ev.clientY - rect.top,
+  };
+  mapLassoBoxEl = document.createElement('div');
+  mapLassoBoxEl.className = 'map-lasso-box';
+  map.getContainer().appendChild(mapLassoBoxEl);
+  ev.preventDefault();
+});
+
+window.addEventListener('mousemove', function (ev) {
+  if (!mapLassoDrag || !mapLassoBoxEl) return;
+  const rect = map.getContainer().getBoundingClientRect();
+  const x = Math.max(0, Math.min(rect.width, ev.clientX - rect.left));
+  const y = Math.max(0, Math.min(rect.height, ev.clientY - rect.top));
+  const left = Math.min(mapLassoDrag.startX, x);
+  const top = Math.min(mapLassoDrag.startY, y);
+  const width = Math.abs(mapLassoDrag.startX - x);
+  const height = Math.abs(mapLassoDrag.startY - y);
+  mapLassoBoxEl.style.left = `${left}px`;
+  mapLassoBoxEl.style.top = `${top}px`;
+  mapLassoBoxEl.style.width = `${width}px`;
+  mapLassoBoxEl.style.height = `${height}px`;
+});
+
+window.addEventListener('mouseup', function (ev) {
+  if (!mapLassoDrag) return;
+  const rect = map.getContainer().getBoundingClientRect();
+  const endX = Math.max(0, Math.min(rect.width, ev.clientX - rect.left));
+  const endY = Math.max(0, Math.min(rect.height, ev.clientY - rect.top));
+  const left = Math.min(mapLassoDrag.startX, endX);
+  const right = Math.max(mapLassoDrag.startX, endX);
+  const top = Math.min(mapLassoDrag.startY, endY);
+  const bottom = Math.max(mapLassoDrag.startY, endY);
+  const isClickish = Math.abs(mapLassoDrag.startX - endX) < 6 && Math.abs(mapLassoDrag.startY - endY) < 6;
+  const selectedGages = isClickish ? [] : [...mapMarkerCenters.entries()]
+    .filter(([, point]) => point.x >= left && point.x <= right && point.y >= top && point.y <= bottom)
+    .map(([gageId]) => gageId);
+  const append = mapLassoDrag.append;
+  mapLassoDrag = null;
+  removeLassoBox();
+  if (selectedGages.length) {
+    suppressNextMapClear = true;
+    handleMapGageSelection(selectedGages, { append });
+    fitMapToSelections({ force: true });
   }
 });
 
 // ── Main render ───────────────────────────────────────────────────
 function render() {
+  ensureConsistentState();
   const d = filterData();
+  if (hasMapSelections()) {
+    mapSelections = mapSelections.filter(sel => d.some(r => matchesMapSelection(r, sel)));
+  }
+  updateDebugState();
   renderHeatmap(d);
   renderMap(d);
-}
-
-// ── Cross-filter helpers: WWTP ↔ Basin ────────────────────────────
-// Selecting a WWTP narrows the Basin list to only that WWTP's service area, and vice versa.
-function rebuildBasinOptions(wwtp) {
-  const cur = slBasin.value;
-  slBasin.innerHTML = '<option value="">All Basins</option>';
-  let opts = allBasins;
-  if (wwtp) {
-    const valid = new Set(meter.filter(m => m.SERVICE_AR === wwtp).map(m => m.METERBASIN));
-    opts = allBasins.filter(b => valid.has(b));
+  const nextViewSig = JSON.stringify({
+    gages: [...mapMarkerLatLngs.keys()].sort((a, b) => a - b),
+    selections: mapSelections.map(selectionKey).sort(),
+  });
+  if (nextViewSig !== mapViewSig) {
+    if (hasMapSelections()) fitMapToSelections({ force: true });
+    else fitMapToFilteredGages(true);
+    mapViewSig = nextViewSig;
   }
-  opts.forEach(b => { slBasin.add(new Option(b, b)); });
-  slBasin.value = (cur && opts.includes(cur)) ? cur : '';
-  selBasin = slBasin.value;
-}
-
-function rebuildWWTPOptions(basin) {
-  const cur = slWWTP.value;
-  slWWTP.innerHTML = '<option value="">All WWTPs</option>';
-  let opts = allWWTPs;
-  if (basin) {
-    const valid = new Set(meter.filter(m => m.METERBASIN === basin).map(m => m.SERVICE_AR).filter(Boolean));
-    opts = allWWTPs.filter(w => valid.has(w));
-  }
-  opts.forEach(w => { slWWTP.add(new Option(w, w)); });
-  slWWTP.value = (cur && opts.includes(cur)) ? cur : '';
-  selWWTP = slWWTP.value;
+  refreshMarkerCenters();
 }
 
 // ── Slicer event listeners ─────────────────────────────────────────
-document.getElementById('slCat').addEventListener('change', e => { selCat = e.target.value; render(); });
-document.getElementById('slYM').addEventListener('change',  e => { selYM  = e.target.value; render(); });
-document.getElementById('slBasin').addEventListener('change', e => { selBasin = e.target.value; rebuildWWTPOptions(selBasin); render(); });
-document.getElementById('slWWTP').addEventListener('change',  e => { selWWTP  = e.target.value; rebuildBasinOptions(selWWTP);  render(); });
+Object.entries(slicers).forEach(([key, slicer]) => {
+  slicer.btn.addEventListener('click', function (ev) {
+    ev.stopPropagation();
+    openSlicer(key);
+  });
+
+  slicer.menu.addEventListener('click', function (ev) {
+    const item = ev.target.closest('.hdr-slicer-item');
+    if (!item) return;
+    ev.stopPropagation();
+    const value = item.dataset.value;
+    const append = !!(ev.ctrlKey || ev.metaKey);
+    let nextSet = new Set(getSelectionSet(key));
+
+    if (value === '__all__') {
+      nextSet = new Set();
+    } else if (append) {
+      if (nextSet.has(value)) nextSet.delete(value);
+      else nextSet.add(value);
+    } else {
+      nextSet = new Set([value]);
+    }
+
+    setSelectionSet(key, nextSet);
+    mapSelections = [];
+    ensureConsistentState();
+    render();
+
+    if (!append) closeOpenSlicer();
+  });
+});
+
+document.addEventListener('click', function () {
+  closeOpenSlicer();
+});
+
+btnResetZoom.addEventListener('click', function () {
+  mapViewSig = '';
+  if (hasMapSelections()) fitMapToSelections({ force: true });
+  else fitMapToFilteredGages(true);
+});
+btnLasso.addEventListener('click', function () {
+  const nextActive = !mapLassoMode;
+  setLassoMode(nextActive);
+  if (!nextActive) {
+    mapLassoDrag = null;
+    removeLassoBox();
+  }
+});
+
+window.__rainwiseMapApi = {
+  clearSelections() {
+    mapSelections = [];
+    render();
+  },
+  fitFiltered() {
+    fitMapToFilteredGages(true);
+  },
+  fitSelections() {
+    fitMapToSelections({ force: true });
+  },
+  setSelections(selections) {
+    mapSelections = selections;
+    render();
+  },
+  setLassoMode(active) {
+    setLassoMode(!!active);
+  },
+};
 
 // ── Header date ───────────────────────────────────────────────────
 document.getElementById('hdrDate').textContent = 'Last Update: ' + (window.MOCK.Refresh_DateTime?.Date || '—');
@@ -675,6 +1293,7 @@ setTimeout(() => { map.invalidateSize(); }, 100);
 
 // Re-invalidate map whenever the window is resized
 window.addEventListener('resize', () => setTimeout(() => map.invalidateSize(), 150));
+map.on('moveend zoomend', refreshMarkerCenters);
 </script>
 </body>
 </html>

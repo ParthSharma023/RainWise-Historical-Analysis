@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wet Weather SSO and 2-day Rainfall — RainWise</title>
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="../data/dims.js"></script>
+  <script src="../data/rain_2015.js"></script>
+  <script src="../data/rain_2016.js"></script>
+  <script src="../data/rain_2017.js"></script>
+  <script src="../data/rain_2018.js"></script>
+  <script src="../data/rain_2019.js"></script>
+  <script src="../data/rain_2020.js"></script>
+  <script src="../data/rain_2021.js"></script>
+  <script src="../data/rain_2022.js"></script>
+  <script src="../data/rain_2023.js"></script>
+  <script src="../data/rain_2024.js"></script>
+  <script src="../data/rain_2025.js"></script>
+  <script src="../data/rain_2026.js"></script>
+  <script src="../dataLoader.js"></script>
+  <style>
+    html, body {
+      min-height: 100%;
+    }
+    body {
+      margin: 0;
+      min-width: 1280px;
+      overflow: hidden;
+      background: #0c1522;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      max-width: 100vw;
+    }
+    .page-shell {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: rgba(8, 18, 29, 0.92);
+      overflow: hidden;
+    }
+    .pbi-header {
+      flex-shrink: 0;
+      width: 100%;
+      height: 64px;
+      box-sizing: border-box;
+      background: linear-gradient(90deg, #1a4a6e 0%, #0e2a42 100%);
+      border-bottom: 2px solid #2d7ab0;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      gap: 8px;
+      overflow: visible;
+      position: relative;
+      z-index: 3000;
+      isolation: isolate;
+    }
+    .pbi-header-back {
+      color: #5da8ff;
+      text-decoration: none;
+      font-size: 18px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .pbi-header-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #f1f5fb;
+      white-space: nowrap;
+      padding-right: 12px;
+      border-right: 1px solid rgba(185, 220, 244, 0.28);
+      flex-shrink: 0;
+    }
+    .hdr-slicer {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 4px 6px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(139,175,214,0.22);
+      border-radius: 6px;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+    }
+    .hdr-slicer.is-open {
+      z-index: 2;
+    }
+    .hdr-slicer .sl-lbl {
+      font-size: 9px;
+      color: #6a8aaa;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      font-weight: 700;
+    }
+    .hdr-slicer-btn {
+      width: 100%;
+      border: none;
+      border-radius: 4px;
+      background: rgba(12,21,34,0.8);
+      color: #f1f5fb;
+      font-size: 11px;
+      text-align: left;
+      cursor: pointer;
+      padding: 2px 18px 2px 4px;
+      min-height: 20px;
+      position: relative;
+    }
+    .hdr-slicer-btn::after {
+      content: '▾';
+      position: absolute;
+      right: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 9px;
+      color: #6a8aaa;
+    }
+    .hdr-slicer-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      min-width: 100%;
+      max-height: 240px;
+      overflow: auto;
+      display: none;
+      z-index: 1200;
+      background: rgba(13,23,37,0.98);
+      border: 1px solid rgba(139,175,214,0.28);
+      border-radius: 8px;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.35);
+      padding: 4px;
+    }
+    .hdr-slicer.is-open .hdr-slicer-menu {
+      display: block;
+    }
+    .hdr-slicer-item {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: #d9e6f2;
+      text-align: left;
+      font-size: 11px;
+      border-radius: 5px;
+      padding: 5px 6px;
+      cursor: pointer;
+    }
+    .hdr-slicer-item:hover {
+      background: rgba(93,168,255,0.14);
+      color: #f4f8fc;
+    }
+    .hdr-slicer-item.is-selected {
+      background: rgba(93,168,255,0.2);
+      color: #f4f8fc;
+      font-weight: 700;
+    }
+    .hdr-slicer-item.is-all {
+      border-bottom: 1px solid rgba(139,175,214,0.16);
+      margin-bottom: 3px;
+      padding-bottom: 6px;
+    }
+    .hdr-slicer-hint {
+      font-size: 9px;
+      color: #7f97b1;
+      padding: 3px 6px 1px;
+    }
+    .hdr-slicer-item-label {
+      display: block;
+      width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .main-grid {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 820px 1fr;
+      gap: 0;
+      background: linear-gradient(180deg, rgba(13,24,38,0.9), rgba(9,18,29,0.96));
+    }
+    .main-grid > .table-panel {
+      grid-column: 1;
+      grid-row: 1;
+      margin-top: 0;
+    }
+    .main-grid > .map-panel {
+      grid-column: 2;
+      grid-row: 1;
+      min-height: 0;
+    }
+    .table-panel {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(180deg, rgba(22,36,54,.97), rgba(16,28,44,.97));
+      border-right: 1px solid rgba(139,175,214,0.18);
+      overflow: hidden;
+    }
+    .table-wrap {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      background: #122235;
+      scrollbar-color: rgba(106,138,170,0.9) rgba(18,30,48,0.18);
+      scrollbar-width: thin;
+    }
+    .sso-table {
+      width: 100%;
+      min-width: 0;
+      table-layout: fixed;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 11px;
+      color: #e7f0f8;
+      background: #122235;
+    }
+    .sso-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      padding: 9px 6px;
+      background: #0f6785;
+      color: #eff7ff;
+      font-size: 11px;
+      text-align: left;
+      border-bottom: 1px solid rgba(86, 126, 159, 0.28);
+      border-right: 1px solid rgba(122,156,199,0.2);
+      white-space: nowrap;
+    }
+    .sso-table tbody td {
+      padding: 4px 6px;
+      border-bottom: 1px solid rgba(122,156,199,0.2);
+      border-right: 1px solid rgba(122,156,199,0.18);
+      vertical-align: top;
+      background: #203247;
+      color: #e7f0f8;
+      line-height: 1.25;
+    }
+    .sso-table tbody tr:nth-child(even) td {
+      background: #24384f;
+    }
+    .sso-table tbody tr.is-active td {
+      box-shadow: inset 0 0 0 2px rgba(93,168,255,0.35);
+      background: #2a4560;
+    }
+    .sso-table tbody tr {
+      cursor: pointer;
+    }
+    .sso-table td.right,
+    .sso-table th.right {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .sso-table td.center {
+      text-align: center;
+    }
+    .sso-table th:nth-child(1), .sso-table td:nth-child(1) { width: 9%; }
+    .sso-table th:nth-child(2), .sso-table td:nth-child(2) { width: 12%; }
+    .sso-table th:nth-child(3), .sso-table td:nth-child(3) { width: 13%; }
+    .sso-table th:nth-child(4), .sso-table td:nth-child(4) { width: 8%; }
+    .sso-table th:nth-child(5), .sso-table td:nth-child(5) { width: 8%; }
+    .sso-table th:nth-child(6), .sso-table td:nth-child(6) { width: 10%; }
+    .sso-table th:nth-child(7), .sso-table td:nth-child(7) { width: 10%; }
+    .sso-table th:nth-child(8), .sso-table td:nth-child(8) { width: 10%; }
+    .sso-table th:nth-child(9), .sso-table td:nth-child(9) { width: 15%; }
+    .sso-table th:nth-child(10), .sso-table td:nth-child(10) { width: 15%; }
+
+    .rain-cell {
+      font-weight: 700;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .rain-cell.cat-zero { background: #5c677f !important; color: #f1f5fb; }
+    .rain-cell.cat-drizzle { background: #f9e48b !important; color: #6b5400; }
+    .rain-cell.cat-light { background: #74cff2 !important; color: #0d4966; }
+    .rain-cell.cat-moderate { background: #f4a261 !important; color: #5d2d00; }
+    .rain-cell.cat-heavy { background: #ff5a4f !important; color: #ffffff; }
+    .rain-cell.cat-extreme { background: #131313 !important; color: #ffffff; }
+
+    .map-panel {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(180deg, rgba(22,36,54,.97), rgba(16,28,44,.97));
+      overflow: hidden;
+      position: relative;
+    }
+    #ssoMap {
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+    }
+    .leaflet-container {
+      background: #eef3f8;
+    }
+    .map-legend {
+      position: absolute;
+      top: 10px;
+      bottom: auto;
+      left: 10px;
+      right: auto;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      width: auto;
+      max-width: calc(100% - 20px);
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(139,175,214,0.24);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #4d6078;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+      pointer-events: none;
+    }
+    .legend-title {
+      font-weight: 700;
+      color: #4d6078;
+      margin-right: 2px;
+    }
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .legend-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.12);
+      flex-shrink: 0;
+    }
+    .pie-marker {
+      background: none !important;
+      border: none !important;
+    }
+    .pie-marker svg path,
+    .pie-marker svg circle[data-gage] {
+      cursor: pointer;
+      pointer-events: fill;
+    }
+    .leaflet-control-zoom a {
+      background: rgba(255,255,255,0.94) !important;
+      color: #38516a !important;
+      border-color: rgba(80,105,130,0.25) !important;
+    }
+    .leaflet-control-zoom a:hover {
+      background: #ffffff !important;
+      color: #1f3650 !important;
+    }
+    .leaflet-control-attribution {
+      background: rgba(255,255,255,0.88) !important;
+      color: #5f6d7a !important;
+    }
+    .leaflet-control-attribution a {
+      color: #2669b2 !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="pbi-header">
+      <a class="pbi-header-back" href="../index.html" title="Back">&#8592;</a>
+      <div class="pbi-header-title">2-day Rainfall (SSO Analysis)</div>
+
+      <div class="hdr-slicer" style="width:148px;">
+        <div class="sl-lbl">Raingage, HCFCD</div>
+        <button type="button" class="hdr-slicer-btn" id="slGageBtn">All</button>
+        <div class="hdr-slicer-menu" id="slGageMenu"></div>
+      </div>
+
+      <div class="hdr-slicer" style="width:138px;">
+        <div class="sl-lbl">Event Category</div>
+        <button type="button" class="hdr-slicer-btn" id="slCatBtn">All</button>
+        <div class="hdr-slicer-menu" id="slCatMenu"></div>
+      </div>
+
+      <div class="hdr-slicer" style="width:114px;">
+        <div class="sl-lbl">Year-Mon</div>
+        <button type="button" class="hdr-slicer-btn" id="slYMBtn">All</button>
+        <div class="hdr-slicer-menu" id="slYMMenu"></div>
+      </div>
+
+      <div class="hdr-slicer" style="width:118px;">
+        <div class="sl-lbl">Sewer Basin</div>
+        <button type="button" class="hdr-slicer-btn" id="slBasinBtn">All</button>
+        <div class="hdr-slicer-menu" id="slBasinMenu"></div>
+      </div>
+
+      <div class="hdr-slicer" style="width:142px;">
+        <div class="sl-lbl">WWTP</div>
+        <button type="button" class="hdr-slicer-btn" id="slWWTPBtn">All</button>
+        <div class="hdr-slicer-menu" id="slWWTPMenu"></div>
+      </div>
+    </header>
+
+    <main class="main-grid">
+      <section class="table-panel">
+        <div class="table-wrap" id="tableWrap"></div>
+      </section>
+
+      <section class="map-panel">
+        <div class="map-legend" id="mapLegend"></div>
+        <div id="ssoMap"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+const rainData = window.MOCK?.Realtime_rainfall_hcfcd_daily || [];
+const ssoData = window.MOCK?.vt_WW_SSO_Lisa || [];
+const basinLookup = new Map((window.MOCK?.BasinUnique_Raingage || []).map(row => [String(row.METERBASIN), Number(row.RAINGAGEID)]));
+const gageLookup = new Map((window.MOCK?.RainGauge_HCFCD || []).map(row => [Number(row.Raingage), row]));
+const rainByDateGage = new Map(rainData.map(row => [row.DateGage, row]));
+
+const CAT_ORDER = ['Zero Rain', '<0.3 in', '0.3-1.0 in', '1.0-3.0 in', '3.0-5.0 in', 'Over 5.0 in'];
+const LEGEND_CATS = ['<0.3 in', '0.3-1.0 in', '1.0-3.0 in', '3.0-5.0 in', 'Over 5.0 in'];
+const CAT_COLOR = {
+  'Zero Rain': '#5c677f',
+  '<0.3 in': '#f9c80e',
+  '0.3-1.0 in': '#36b8ee',
+  '1.0-3.0 in': '#f2994a',
+  '3.0-5.0 in': '#ff4c39',
+  'Over 5.0 in': '#111111',
+};
+const CAT_TEXT = {
+  'Zero Rain': '#ffffff',
+  '<0.3 in': '#5f4d00',
+  '0.3-1.0 in': '#0f5171',
+  '1.0-3.0 in': '#6f3300',
+  '3.0-5.0 in': '#ffffff',
+  'Over 5.0 in': '#ffffff',
+};
+
+function rainCategory(r) {
+  if (r === 0) return 'Zero Rain';
+  if (r < 0.3) return '<0.3 in';
+  if (r < 1.0) return '0.3-1.0 in';
+  if (r < 3.0) return '1.0-3.0 in';
+  if (r < 5.0) return '3.0-5.0 in';
+  return 'Over 5.0 in';
+}
+
+function fmtDate(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return `${m}/${d}/${y}`;
+}
+
+function fmtNum(value) {
+  return value == null ? '' : Number(value).toFixed(2);
+}
+
+function summarizeSelection(selectedSet, { allLabel = 'All' } = {}) {
+  if (!selectedSet.size) return allLabel;
+  if (selectedSet.size === 1) return [...selectedSet][0];
+  return `${selectedSet.size} selected`;
+}
+
+function reconcileSet(currentSet, options) {
+  const optionSet = new Set(options.map(String));
+  return new Set([...currentSet].filter(value => optionSet.has(String(value))));
+}
+
+const rows = ssoData.map(row => {
+  const gage = basinLookup.get(String(row.Basin)) ?? null;
+  if (gage == null) return null;
+  const dateGage = row.StartDate + String(gage);
+  const rainRow = rainByDateGage.get(dateGage);
+  const rainPrev = rainRow?.Rain_PreviousDay ?? null;
+  const rainSSO = rainRow?.rain ?? null;
+  const rain2Day = rainRow?.Rain_SSO_PrevDay ?? (rainPrev != null && rainSSO != null ? rainPrev + rainSSO : null);
+  if (rain2Day == null) return null;
+  return {
+    ExcID: row.InternalExcursionID,
+    StartDate: row.StartDate,
+    StartDateDisplay: fmtDate(row.StartDate),
+    Year_Mon: row.StartDate.slice(0, 7),
+    Manhole: row.Manhole || '',
+    Basin: row.Basin || '',
+    Raingage: gage,
+    Rain_PrevDay: Number(rainPrev || 0),
+    Rain_SSODay: Number(rainSSO || 0),
+    Rain_2day: Number(rain2Day || 0),
+    Event_Category: rainCategory(Number(rain2Day || 0)),
+    StructureType: row.StructureType || '',
+    Blockage_Asset: row.Blockage_Loc_Asset_Type || '',
+    WWTP: row.WWTP || '',
+  };
+}).filter(Boolean);
+
+let selGages = new Set();
+let selCats = new Set();
+let selYMs = new Set();
+let selBasins = new Set();
+let selWWTPs = new Set();
+let mapSelection = null;
+
+const slGageBtn = document.getElementById('slGageBtn');
+const slCatBtn = document.getElementById('slCatBtn');
+const slYMBtn = document.getElementById('slYMBtn');
+const slBasinBtn = document.getElementById('slBasinBtn');
+const slWWTPBtn = document.getElementById('slWWTPBtn');
+const slGageMenu = document.getElementById('slGageMenu');
+const slCatMenu = document.getElementById('slCatMenu');
+const slYMMenu = document.getElementById('slYMMenu');
+const slBasinMenu = document.getElementById('slBasinMenu');
+const slWWTPMenu = document.getElementById('slWWTPMenu');
+const tableWrap = document.getElementById('tableWrap');
+const mapLegend = document.getElementById('mapLegend');
+
+const slicers = {
+  gage: { btn: slGageBtn, menu: slGageMenu, allLabel: 'All', summary: () => summarizeSelection(selGages) },
+  cat: { btn: slCatBtn, menu: slCatMenu, allLabel: 'All', summary: () => summarizeSelection(selCats) },
+  ym: { btn: slYMBtn, menu: slYMMenu, allLabel: 'All', summary: () => summarizeSelection(selYMs) },
+  basin: { btn: slBasinBtn, menu: slBasinMenu, allLabel: 'All', summary: () => summarizeSelection(selBasins) },
+  wwtp: { btn: slWWTPBtn, menu: slWWTPMenu, allLabel: 'All', summary: () => summarizeSelection(selWWTPs) },
+};
+
+const slicerOptions = { gage: [], cat: [], ym: [], basin: [], wwtp: [] };
+let openSlicerKey = null;
+
+function getSelectionSet(key) {
+  if (key === 'gage') return selGages;
+  if (key === 'cat') return selCats;
+  if (key === 'ym') return selYMs;
+  if (key === 'basin') return selBasins;
+  return selWWTPs;
+}
+
+function setSelectionSet(key, nextSet) {
+  if (key === 'gage') selGages = nextSet;
+  else if (key === 'cat') selCats = nextSet;
+  else if (key === 'ym') selYMs = nextSet;
+  else if (key === 'basin') selBasins = nextSet;
+  else selWWTPs = nextSet;
+}
+
+function updateSlicerButtonLabel(key) {
+  slicers[key].btn.textContent = slicers[key].summary();
+}
+
+function renderSlicerMenu(key) {
+  const menu = slicers[key].menu;
+  const selectedSet = getSelectionSet(key);
+  const options = slicerOptions[key];
+  menu.innerHTML = '';
+
+  const hint = document.createElement('div');
+  hint.className = 'hdr-slicer-hint';
+  hint.textContent = 'Ctrl/Cmd-click to multi-select';
+  menu.appendChild(hint);
+
+  const makeItem = (label, value, selected, extraClass = '') => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `hdr-slicer-item ${selected ? 'is-selected' : ''} ${extraClass}`.trim();
+    btn.dataset.value = value;
+    btn.innerHTML = `<span class="hdr-slicer-item-label">${label}</span>`;
+    return btn;
+  };
+
+  menu.appendChild(makeItem(slicers[key].allLabel, '__all__', selectedSet.size === 0, 'is-all'));
+  options.forEach(option => {
+    menu.appendChild(makeItem(String(option), String(option), selectedSet.has(String(option))));
+  });
+  updateSlicerButtonLabel(key);
+}
+
+function closeOpenSlicer() {
+  if (!openSlicerKey) return;
+  slicers[openSlicerKey].btn.closest('.hdr-slicer').classList.remove('is-open');
+  openSlicerKey = null;
+}
+
+function openSlicer(key) {
+  if (openSlicerKey === key) {
+    closeOpenSlicer();
+    return;
+  }
+  closeOpenSlicer();
+  slicers[key].btn.closest('.hdr-slicer').classList.add('is-open');
+  openSlicerKey = key;
+}
+
+function filterRows({ skip = null } = {}) {
+  return rows.filter(row =>
+    (skip === 'gage' || !selGages.size || selGages.has(String(row.Raingage))) &&
+    (skip === 'cat' || !selCats.size || selCats.has(String(row.Event_Category))) &&
+    (skip === 'ym' || !selYMs.size || selYMs.has(String(row.Year_Mon))) &&
+    (skip === 'basin' || !selBasins.size || selBasins.has(String(row.Basin))) &&
+    (skip === 'wwtp' || !selWWTPs.size || selWWTPs.has(String(row.WWTP)))
+  );
+}
+
+function applyMapSelection(data) {
+  if (!mapSelection) return data;
+  return data.filter(row => row.Raingage === mapSelection.gage && (!mapSelection.category || row.Event_Category === mapSelection.category));
+}
+
+function syncSlicerOptions() {
+  let changed = false;
+
+  const gageOptions = [...new Set(filterRows({ skip: 'gage' }).map(row => String(row.Raingage)))].sort((a, b) => Number(a) - Number(b));
+  const nextGages = reconcileSet(selGages, gageOptions);
+  if (nextGages.size !== selGages.size || [...nextGages].some(value => !selGages.has(value))) { selGages = nextGages; changed = true; }
+  slicerOptions.gage = gageOptions;
+
+  const catOptions = CAT_ORDER.filter(cat => filterRows({ skip: 'cat' }).some(row => row.Event_Category === cat));
+  const nextCats = reconcileSet(selCats, catOptions);
+  if (nextCats.size !== selCats.size || [...nextCats].some(value => !selCats.has(value))) { selCats = nextCats; changed = true; }
+  slicerOptions.cat = catOptions;
+
+  const ymOptions = [...new Set(filterRows({ skip: 'ym' }).map(row => String(row.Year_Mon)))].sort().reverse();
+  const nextYMs = reconcileSet(selYMs, ymOptions);
+  if (nextYMs.size !== selYMs.size || [...nextYMs].some(value => !selYMs.has(value))) { selYMs = nextYMs; changed = true; }
+  slicerOptions.ym = ymOptions;
+
+  const basinOptions = [...new Set(filterRows({ skip: 'basin' }).map(row => String(row.Basin)).filter(Boolean))].sort();
+  const nextBasins = reconcileSet(selBasins, basinOptions);
+  if (nextBasins.size !== selBasins.size || [...nextBasins].some(value => !selBasins.has(value))) { selBasins = nextBasins; changed = true; }
+  slicerOptions.basin = basinOptions;
+
+  const wwtpOptions = [...new Set(filterRows({ skip: 'wwtp' }).map(row => String(row.WWTP)).filter(Boolean))].sort();
+  const nextWWTPs = reconcileSet(selWWTPs, wwtpOptions);
+  if (nextWWTPs.size !== selWWTPs.size || [...nextWWTPs].some(value => !selWWTPs.has(value))) { selWWTPs = nextWWTPs; changed = true; }
+  slicerOptions.wwtp = wwtpOptions;
+
+  Object.keys(slicers).forEach(renderSlicerMenu);
+  return changed;
+}
+
+function ensureConsistentState() {
+  let safety = 0;
+  while (syncSlicerOptions() && safety < 5) safety += 1;
+}
+
+function rainCellClass(category) {
+  if (category === 'Zero Rain') return 'cat-zero';
+  if (category === '<0.3 in') return 'cat-drizzle';
+  if (category === '0.3-1.0 in') return 'cat-light';
+  if (category === '1.0-3.0 in') return 'cat-moderate';
+  if (category === '3.0-5.0 in') return 'cat-heavy';
+  return 'cat-extreme';
+}
+
+function renderTable(data) {
+  const sorted = data.slice().sort((a, b) => b.StartDate.localeCompare(a.StartDate) || b.ExcID - a.ExcID);
+  if (!sorted.length) {
+    tableWrap.innerHTML = '<div style="padding:18px;color:#8aa9c7;font-size:13px;">No wet weather SSO records match the current filters.</div>';
+    return;
+  }
+
+  const body = sorted.map(row => {
+    const active = mapSelection && row.Raingage === mapSelection.gage && (!mapSelection.category || row.Event_Category === mapSelection.category);
+    return `<tr class="${active ? 'is-active' : ''}" data-gage="${row.Raingage}" data-cat="${row.Event_Category}">
+      <td class="right">${row.ExcID}</td>
+      <td>${row.StartDateDisplay}</td>
+      <td>${row.Manhole || ''}</td>
+      <td>${row.Basin}</td>
+      <td class="right">${row.Raingage}</td>
+      <td class="right">${fmtNum(row.Rain_PrevDay)}</td>
+      <td class="right">${fmtNum(row.Rain_SSODay)}</td>
+      <td class="rain-cell ${rainCellClass(row.Event_Category)}">${fmtNum(row.Rain_2day)}</td>
+      <td>${row.StructureType}</td>
+      <td>${row.Blockage_Asset || ''}</td>
+    </tr>`;
+  }).join('');
+
+  tableWrap.innerHTML = `<table class="sso-table">
+    <thead>
+      <tr>
+        <th class="right">ExcID</th>
+        <th>StartDate</th>
+        <th>Manhole</th>
+        <th>Basin</th>
+        <th class="right">Raingage</th>
+        <th class="right">Rain_PrevDay</th>
+        <th class="right">Rain_SSODay</th>
+        <th class="right">Rain_2-day</th>
+        <th>StructureType</th>
+        <th>Blockage_Asset</th>
+      </tr>
+    </thead>
+    <tbody>${body}</tbody>
+  </table>`;
+}
+
+const map = L.map('ssoMap', {
+  center: [29.82, -95.35],
+  zoom: 9,
+  zoomControl: true,
+  attributionControl: true,
+  fadeAnimation: false,
+});
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+  maxZoom: 18,
+}).addTo(map);
+
+const markerLayer = L.layerGroup().addTo(map);
+
+function pieSvg(gageId, entries, selected) {
+  const radius = selected ? 24 : 22;
+  const labelH = 18;
+  const cx = radius + 1;
+  const cy = labelH + radius + 1;
+  const svgW = (radius + 1) * 2;
+  const svgH = labelH + svgW;
+  let angle = -Math.PI / 2;
+  let parts = '';
+
+  if (entries.length === 1) {
+    const entry = entries[0];
+    parts += `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="${CAT_COLOR[entry.cat]}" stroke="${selected ? '#ffffff' : 'rgba(0,0,0,0.22)'}" stroke-width="${selected ? '2.6' : '1'}" data-gage="${gageId}" data-cat="${entry.cat}"/>`;
+  } else {
+    entries.forEach(entry => {
+      const sweep = (2 * Math.PI) / entries.length;
+      const x1 = cx + radius * Math.cos(angle);
+      const y1 = cy + radius * Math.sin(angle);
+      const end = angle + sweep;
+      const x2 = cx + radius * Math.cos(end);
+      const y2 = cy + radius * Math.sin(end);
+      const large = sweep > Math.PI ? 1 : 0;
+      const sliceSelected = selected && mapSelection && mapSelection.category === entry.cat;
+      parts += `<path d="M${cx},${cy}L${x1.toFixed(2)},${y1.toFixed(2)}A${radius},${radius} 0 ${large},1 ${x2.toFixed(2)},${y2.toFixed(2)}Z" fill="${CAT_COLOR[entry.cat]}" stroke="${sliceSelected ? '#ffffff' : 'rgba(0,0,0,0.22)'}" stroke-width="${sliceSelected ? '2.6' : '1'}" data-gage="${gageId}" data-cat="${entry.cat}"/>`;
+      angle = end;
+    });
+  }
+
+  const label = String(gageId);
+  const labelW = Math.max(36, 10 + label.length * 8);
+  const labelX = cx - labelW / 2;
+  parts += `<rect x="${labelX}" y="0.5" rx="5" ry="5" width="${labelW}" height="16" fill="rgba(56,173,115,0.94)" stroke="rgba(255,255,255,0.2)" stroke-width="0.6" pointer-events="none"/>`;
+  parts += `<text x="${cx}" y="11" text-anchor="middle" font-size="9" font-weight="700" fill="#ffffff" font-family="Arial,sans-serif" pointer-events="none">${gageId}</text>`;
+
+  return `<svg width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg" data-gage-root="${gageId}" style="overflow:visible;">${parts}</svg>`;
+}
+
+let _pieTip = null;
+function showPieTip(event, gageId, cat, lat, lon) {
+  if (!_pieTip) {
+    _pieTip = document.createElement('div');
+    _pieTip.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;background:rgba(16,28,44,0.96);border:1px solid rgba(139,175,214,0.3);border-radius:8px;padding:8px 12px;font-size:11px;color:#f1f5fb;box-shadow:0 4px 18px rgba(0,0,0,0.5);line-height:1.8;white-space:nowrap;';
+    document.body.appendChild(_pieTip);
+  }
+  _pieTip.innerHTML =
+    `<div style="font-weight:700;color:#5da8ff;font-size:13px;margin-bottom:2px;">Gage ${gageId}</div>` +
+    `<div><span style="color:#8aaccc;">Event Category</span> &nbsp;<b>${cat}</b></div>` +
+    `<div><span style="color:#8aaccc;">Average of LATITUDE</span> &nbsp;${Number(lat).toFixed(4)}</div>` +
+    `<div><span style="color:#8aaccc;">Average of LONGITUDE</span> &nbsp;${Number(lon).toFixed(4)}</div>`;
+  _pieTip.style.left = (event.clientX + 14) + 'px';
+  _pieTip.style.top = (event.clientY - 10) + 'px';
+  _pieTip.style.display = 'block';
+}
+
+function hidePieTip() {
+  if (_pieTip) _pieTip.style.display = 'none';
+}
+
+function renderMap(data) {
+  markerLayer.clearLayers();
+
+  const grouped = new Map();
+  data.forEach(row => {
+    const gageInfo = gageLookup.get(row.Raingage);
+    if (!gageInfo || gageInfo.LATITUDE == null || gageInfo.LONGITUDE == null) return;
+    let entry = grouped.get(row.Raingage);
+    if (!entry) {
+      entry = { gage: row.Raingage, lat: gageInfo.LATITUDE, lon: gageInfo.LONGITUDE, counts: new Map() };
+      grouped.set(row.Raingage, entry);
+    }
+    entry.counts.set(row.Event_Category, (entry.counts.get(row.Event_Category) || 0) + 1);
+  });
+
+  grouped.forEach(entry => {
+    const pieEntries = CAT_ORDER.filter(cat => entry.counts.has(cat)).map(cat => ({ cat, count: entry.counts.get(cat) }));
+    const selected = mapSelection && mapSelection.gage === entry.gage;
+    const icon = L.divIcon({
+      html: pieSvg(entry.gage, pieEntries, selected),
+      className: 'pie-marker',
+      iconSize: [54, 68],
+      iconAnchor: [27, 42],
+    });
+    L.marker([entry.lat, entry.lon], { icon }).addTo(markerLayer);
+  });
+
+  mapLegend.innerHTML =
+    `<span class="legend-title">Event Category</span>` +
+    LEGEND_CATS.map(cat => `<span class="legend-item"><span class="legend-dot" style="background:${CAT_COLOR[cat]};"></span>${cat}</span>`).join('');
+}
+
+function render() {
+  ensureConsistentState();
+  let filtered = filterRows();
+  if (mapSelection && !filtered.some(row => row.Raingage === mapSelection.gage && (!mapSelection.category || row.Event_Category === mapSelection.category))) {
+    mapSelection = null;
+  }
+  filtered = applyMapSelection(filtered);
+  renderTable(filtered);
+  renderMap(filtered);
+}
+
+Object.keys(slicers).forEach(key => {
+  slicers[key].btn.addEventListener('click', event => {
+    event.stopPropagation();
+    openSlicer(key);
+  });
+
+  slicers[key].menu.addEventListener('click', event => {
+    const item = event.target.closest('.hdr-slicer-item');
+    if (!item) return;
+    event.stopPropagation();
+    const value = item.dataset.value;
+    const append = !!(event.ctrlKey || event.metaKey);
+    let next = new Set(getSelectionSet(key));
+
+    if (value === '__all__') {
+      next.clear();
+    } else if (!append) {
+      next = new Set([value]);
+    } else if (next.has(value)) {
+      next.delete(value);
+    } else {
+      next.add(value);
+    }
+
+    setSelectionSet(key, next);
+    mapSelection = null;
+    render();
+
+    if (!append) closeOpenSlicer();
+    else renderSlicerMenu(key);
+  });
+});
+
+document.addEventListener('click', event => {
+  if (!event.target.closest('.hdr-slicer')) closeOpenSlicer();
+});
+
+tableWrap.addEventListener('click', event => {
+  const row = event.target.closest('tr[data-gage]');
+  if (!row) return;
+  const next = {
+    gage: Number(row.dataset.gage),
+    category: row.dataset.cat || null,
+  };
+  if (mapSelection && mapSelection.gage === next.gage && mapSelection.category === next.category) mapSelection = null;
+  else mapSelection = next;
+  render();
+});
+
+map.on('click', function () {
+  if (mapSelection) {
+    mapSelection = null;
+    render();
+  }
+});
+
+map.getPanes().markerPane.addEventListener('click', function (event) {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  const cat = target.getAttribute('data-cat');
+  const gage = Number(target.getAttribute('data-gage'));
+  if (!cat || !gage) return;
+  L.DomEvent.stopPropagation(event);
+  if (mapSelection && mapSelection.gage === gage && mapSelection.category === cat) mapSelection = null;
+  else mapSelection = { gage, category: cat };
+  render();
+});
+
+map.getPanes().markerPane.addEventListener('mousemove', function (event) {
+  const target = event.target;
+  if (!(target instanceof Element)) {
+    hidePieTip();
+    return;
+  }
+  const cat = target.getAttribute('data-cat');
+  const gage = Number(target.getAttribute('data-gage'));
+  if (!cat || !gage) {
+    hidePieTip();
+    return;
+  }
+  const gageInfo = gageLookup.get(gage);
+  if (!gageInfo || gageInfo.LATITUDE == null || gageInfo.LONGITUDE == null) {
+    hidePieTip();
+    return;
+  }
+  showPieTip(event, gage, cat, gageInfo.LATITUDE, gageInfo.LONGITUDE);
+});
+
+map.getPanes().markerPane.addEventListener('mouseleave', function () {
+  hidePieTip();
+});
+
+window.addEventListener('mousemove', function (event) {
+  if (_pieTip && _pieTip.style.display === 'block') {
+    _pieTip.style.left = (event.clientX + 14) + 'px';
+    _pieTip.style.top = (event.clientY - 10) + 'px';
+  }
+});
+
+render();
+  </script>
+</body>
+</html>

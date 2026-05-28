@@ -3,189 +3,484 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RainWise — Rainfall Intelligence Dashboard</title>
+  <title>RainWise Rainfall Intelligence</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    body { min-width: 900px; }
-    .home-hero {
-      padding: 40px 48px 28px;
-      border-bottom: 1px solid rgba(122,156,199,0.12);
-      display: flex; align-items: flex-start; justify-content: space-between; gap: 32px;
+    :root {
+      --hero-text: #f1f5fb;
+      --hero-muted: #b8c8dd;
+      --hero-accent: #5da8ff;
+      --hero-accent-2: #41b9a8;
+      --hero-warm: #f3b26f;
+      --home-tile-bg: linear-gradient(180deg, rgba(27, 42, 61, 0.96), rgba(20, 31, 47, 0.96));
+      --home-ribbon-bg: linear-gradient(180deg, rgba(28, 48, 74, 0.98), rgba(20, 34, 52, 0.98));
+      --home-band-bg: linear-gradient(90deg, rgba(18, 100, 137, 0.96), rgba(18, 76, 120, 0.98));
     }
-    .hero-badge {
-      display: inline-block; padding: 4px 12px; border-radius: 999px;
-      background: rgba(65,185,168,0.18); color: #6fd9cb;
-      font-size: 12px; font-weight: 700; letter-spacing: .05em; margin-bottom: 12px;
+
+    * {
+      box-sizing: border-box;
     }
-    .hero-title { font-size: 38px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 10px; }
-    .hero-sub   { color: var(--muted); font-size: 16px; line-height: 1.5; max-width: 560px; }
-    .hero-meta  { margin-top: 18px; display: flex; gap: 24px; }
-    .hero-stat  { text-align: center; }
-    .hero-stat-val { font-size: 28px; font-weight: 800; color: #5da8ff; }
-    .hero-stat-lbl { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .section-grid { padding: 28px 48px 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
-    .nav-section h2 { font-size: 16px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 0 0 14px; }
-    .nav-card {
-      display: flex; align-items: center; gap: 14px;
-      padding: 14px 16px; border-radius: 14px; margin-bottom: 10px;
-      background: linear-gradient(180deg,rgba(26,39,57,.92),rgba(20,31,47,.92));
-      border: 1px solid var(--border); text-decoration: none; color: var(--text);
-      transition: border-color .18s, background .18s;
+
+    html,
+    body {
+      min-height: 100%;
     }
-    .nav-card:hover { border-color: rgba(93,168,255,.4); background: linear-gradient(180deg,rgba(32,50,74,.96),rgba(24,38,58,.96)); }
-    .nav-card.priority { border-left: 4px solid #41b9a8; }
-    .nav-icon  { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
-    .nav-icon.rain   { background: rgba(65,185,168,.18); }
-    .nav-icon.sso    { background: rgba(207,67,54,.18); }
-    .nav-icon.qa     { background: rgba(93,168,255,.18); }
-    .nav-icon.kpi    { background: rgba(214,107,45,.18); }
-    .nav-title { font-size: 15px; font-weight: 700; }
-    .nav-desc  { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
-    .nav-badge { margin-left: auto; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; flex-shrink: 0; }
-    .badge-priority { background: rgba(65,185,168,.2); color: #6fd9cb; }
-    .badge-planned  { background: rgba(113,143,184,.14); color: #8aaccc; }
-    .footer { padding: 20px 48px; border-top: 1px solid rgba(122,156,199,.1); color: var(--muted); font-size: 13px; display: flex; justify-content: space-between; }
+
+    body {
+      min-width: 320px;
+      color: var(--hero-text);
+    }
+
+    .home-shell {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top right, rgba(56, 92, 138, 0.2), transparent 26%),
+        linear-gradient(180deg, #0c1522 0%, #122033 100%);
+    }
+
+    .top-ribbon {
+      border-top: 10px solid rgba(255,255,255,0.12);
+      background: var(--home-ribbon-bg);
+      display: grid;
+      grid-template-columns: 220px 1fr 260px;
+      align-items: center;
+      gap: 24px;
+      padding: 24px 42px 28px;
+      border-bottom: 1px solid rgba(122, 156, 199, 0.14);
+      box-shadow: var(--shadow);
+    }
+
+    .seal-mark {
+      width: 140px;
+      height: 140px;
+      margin: 0 auto;
+      border-radius: 50%;
+      border: 6px solid rgba(93, 168, 255, 0.5);
+      background:
+        radial-gradient(circle at center, #fff 0 31%, #f2df8f 31% 41%, #2d5b9c 41% 57%, #e4c256 57% 64%, #17345d 64% 100%);
+      box-shadow: inset 0 0 0 4px rgba(255,255,255,0.38), 0 10px 24px rgba(5, 12, 22, 0.34);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .seal-mark::before {
+      content: "CITY OF HOUSTON";
+      position: absolute;
+      inset: 14px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.7);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 12px;
+      color: #f8e9a2;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+    }
+
+    .seal-mark::after {
+      content: "★";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -46%);
+      font-size: 34px;
+      color: #b56b00;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.7);
+    }
+
+    .planning-copy {
+      text-align: center;
+      line-height: 1.18;
+    }
+
+    .planning-copy h1 {
+      margin: 0 0 10px;
+      font-size: clamp(36px, 3.2vw, 58px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--hero-text);
+    }
+
+    .planning-copy p {
+      margin: 0;
+      font-size: clamp(20px, 1.9vw, 34px);
+      color: var(--hero-muted);
+    }
+
+    .works-mark {
+      justify-self: center;
+      text-align: center;
+      color: #7fb2ff;
+    }
+
+    .works-symbol {
+      width: 98px;
+      height: 98px;
+      margin: 0 auto 8px;
+      position: relative;
+    }
+
+    .works-symbol span {
+      position: absolute;
+      background: currentColor;
+      border-radius: 2px;
+    }
+
+    .works-symbol .a { width: 12px; height: 28px; left: 22px; top: 6px; }
+    .works-symbol .b { width: 12px; height: 28px; left: 38px; top: 18px; color: #51c0ef; }
+    .works-symbol .c { width: 12px; height: 28px; left: 54px; top: 4px; color: #0f2f80; }
+    .works-symbol .d { width: 12px; height: 28px; left: 22px; top: 44px; color: #243d73; }
+    .works-symbol .e { width: 12px; height: 28px; left: 38px; top: 34px; color: #7ed0f3; }
+    .works-symbol .f { width: 12px; height: 28px; left: 54px; top: 46px; color: #315b9d; }
+    .works-symbol .g { width: 28px; height: 12px; left: 10px; top: 32px; color: #0f2f80; }
+    .works-symbol .h { width: 28px; height: 12px; left: 58px; top: 32px; color: #ff9330; }
+    .works-symbol .i { width: 10px; height: 10px; left: 70px; top: 18px; color: #7ed0f3; }
+    .works-symbol .j { width: 10px; height: 10px; left: 50px; top: 70px; color: #ff9330; }
+
+    .works-mark .label {
+      font-size: clamp(22px, 1.8vw, 34px);
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      line-height: 1.04;
+      color: #d9e7ff;
+    }
+
+    .works-mark .label small {
+      display: block;
+      font-size: 0.72em;
+      margin-top: 4px;
+      color: #9fbbdf;
+    }
+
+    .title-ribbon {
+      background: var(--home-band-bg);
+      color: #fff;
+      display: grid;
+      grid-template-columns: 180px 1fr 200px;
+      align-items: center;
+      padding: 18px 28px 16px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      border-bottom: 1px solid rgba(122, 156, 199, 0.14);
+      box-shadow: var(--shadow);
+    }
+
+    .aiap-mark {
+      color: var(--hero-warm);
+      font-size: clamp(32px, 2.6vw, 58px);
+      font-style: italic;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-shadow: 0 0 5px rgba(255,156,99,0.42);
+    }
+
+    .rainwise-copy {
+      text-align: center;
+      line-height: 1.08;
+    }
+
+    .rainwise-copy h2 {
+      margin: 0;
+      color: #f1f5fb;
+      font-size: clamp(34px, 3vw, 56px);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+    }
+
+    .rainwise-copy p {
+      margin: 6px 0 0;
+      color: #cfe2f5;
+      font-size: clamp(24px, 2vw, 42px);
+      font-weight: 700;
+    }
+
+    .update-block {
+      justify-self: end;
+      text-align: right;
+      color: #f1f5fb;
+    }
+
+    .update-date {
+      font-size: clamp(26px, 2vw, 38px);
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .update-label {
+      margin-top: 8px;
+      font-size: clamp(12px, 1vw, 20px);
+      font-weight: 600;
+    }
+
+    .home-content {
+      padding: 14px 38px 28px;
+    }
+
+    .qaqc-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 184px;
+      min-height: 48px;
+      padding: 10px 26px;
+      border-radius: 14px;
+      background: rgba(65, 185, 168, 0.18);
+      border: 1px solid rgba(65, 185, 168, 0.32);
+      color: #7fe6d9;
+      font-size: 18px;
+      font-weight: 700;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+      text-decoration: none;
+      pointer-events: none;
+      margin: 0 0 14px 30px;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: minmax(520px, 1fr) minmax(440px, 0.94fr);
+      gap: 58px;
+      align-items: start;
+    }
+
+    .menu-column {
+      padding-top: 6px;
+    }
+
+    .tile-stack {
+      display: grid;
+      gap: 22px;
+    }
+
+    .tile-row-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+    }
+
+    .menu-tile {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 96px;
+      padding: 18px 24px;
+      background: var(--home-tile-bg);
+      border: 1px solid var(--border);
+      color: var(--hero-text);
+      font-size: clamp(24px, 2vw, 30px);
+      font-weight: 800;
+      text-align: center;
+      text-decoration: none;
+      box-shadow: var(--shadow);
+      transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+    }
+
+    .menu-tile:hover {
+      transform: translateY(-2px);
+      border-color: rgba(93, 168, 255, 0.44);
+      background: linear-gradient(180deg, rgba(31, 49, 73, 0.98), rgba(24, 38, 58, 0.98));
+      box-shadow: 0 14px 28px rgba(5, 12, 22, 0.42);
+    }
+
+    .menu-tile.is-disabled {
+      cursor: default;
+      color: var(--hero-muted);
+    }
+
+    .menu-tile.is-disabled:hover {
+      transform: none;
+      border-color: var(--border);
+      background: var(--home-tile-bg);
+      box-shadow: var(--shadow);
+    }
+
+    .feature-panel {
+      background: linear-gradient(180deg, rgba(23, 36, 54, 0.98), rgba(18, 29, 45, 0.98));
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      padding: 18px 18px 14px;
+    }
+
+    .feature-panel h3 {
+      margin: 0 0 16px;
+      color: #8dc8ff;
+      font-size: clamp(28px, 2.2vw, 40px);
+      font-weight: 900;
+      text-align: center;
+      letter-spacing: -0.02em;
+    }
+
+    .feature-preview {
+      background: rgba(12, 21, 34, 0.92);
+      border: 1px solid rgba(122, 156, 199, 0.22);
+      border-radius: 14px;
+      overflow: hidden;
+      aspect-ratio: 1.45 / 1;
+    }
+
+    .feature-preview img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: 74% 78%;
+    }
+
+    .footer-note {
+      padding: 6px 42px 22px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 1280px) {
+      .top-ribbon {
+        grid-template-columns: 170px 1fr 210px;
+        padding: 20px 24px 24px;
+      }
+
+      .title-ribbon {
+        grid-template-columns: 140px 1fr 170px;
+        padding: 16px 20px 14px;
+      }
+
+      .content-grid {
+        gap: 30px;
+      }
+
+      .home-content {
+        padding-left: 24px;
+        padding-right: 24px;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .top-ribbon,
+      .title-ribbon,
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .top-ribbon,
+      .title-ribbon {
+        text-align: center;
+      }
+
+      .update-block,
+      .works-mark {
+        justify-self: center;
+      }
+
+      .aiap-mark {
+        text-align: center;
+      }
+
+      .qaqc-chip {
+        margin-left: 0;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .home-content {
+        padding: 14px 14px 22px;
+      }
+
+      .tile-row-split {
+        grid-template-columns: 1fr;
+      }
+
+      .menu-tile {
+        min-height: 84px;
+        font-size: 22px;
+      }
+
+      .footer-note {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+    }
   </style>
 </head>
 <body>
-
-<div class="home-hero">
-  <div>
-    <div class="hero-badge">HOUSTON WATER · WASTEWATER</div>
-    <h1 class="hero-title">RainWise Rainfall Intelligence</h1>
-    <p class="hero-sub">Near-realtime HCFCD rainfall monitoring, wet weather SSO correlation, historical frequency analysis, and RainClass trend tracking for COH Wastewater Infrastructure Planning.</p>
-    <div class="hero-meta">
-      <div class="hero-stat"><div class="hero-stat-val">20</div><div class="hero-stat-lbl">Rain Gages</div></div>
-      <div class="hero-stat"><div class="hero-stat-val" id="ssoCount">—</div><div class="hero-stat-lbl">WW SSO Events</div></div>
-      <div class="hero-stat"><div class="hero-stat-val" id="recordCount">—</div><div class="hero-stat-lbl">Daily Records</div></div>
-      <div class="hero-stat"><div class="hero-stat-val" id="lastUpdate">—</div><div class="hero-stat-lbl">Last Update</div></div>
-    </div>
-  </div>
-  <div style="flex-shrink:0;text-align:right;">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">COH Wastewater System</div>
-    <div style="font-size:11px;color:rgba(180,192,208,.6);">File-based static dashboard<br>No server required</div>
-  </div>
-</div>
-
-<div class="section-grid">
-
-  <div class="nav-section">
-    <h2>Rainfall Analysis</h2>
-
-    <a class="nav-card priority" href="pages/near-realtime-daily-rainfall.html">
-      <div class="nav-icon rain">🌧️</div>
-      <div>
-        <div class="nav-title">Near Realtime Daily Rainfall</div>
-        <div class="nav-desc">Color-coded date × gage heatmap since 2002. Map view with basin markers.</div>
+  <div class="home-shell">
+    <header class="top-ribbon">
+      <div class="seal-mark" aria-hidden="true"></div>
+      <div class="planning-copy">
+        <h1>Wastewater Infrastructure Planning</h1>
+        <p>Houston Water Planning | Houston Water</p>
+        <p>Houston Public Works | City of Houston</p>
       </div>
-      <span class="nav-badge badge-priority">Built</span>
-    </a>
-
-    <a class="nav-card" href="pages/weekly-rainfall.html" style="opacity:.6;pointer-events:none;">
-      <div class="nav-icon rain">📅</div>
-      <div>
-        <div class="nav-title">Weekly Rainfall</div>
-        <div class="nav-desc">Historical dry/wet period review. Dense date × gage weekly heatmap.</div>
+      <div class="works-mark" aria-label="Houston Public Works">
+        <div class="works-symbol" aria-hidden="true">
+          <span class="a"></span><span class="b"></span><span class="c"></span>
+          <span class="d"></span><span class="e"></span><span class="f"></span>
+          <span class="g"></span><span class="h"></span><span class="i"></span><span class="j"></span>
+        </div>
+        <div class="label">HOUSTON<small>PUBLIC WORKS</small></div>
       </div>
-      <span class="nav-badge badge-planned">Planned</span>
-    </a>
+    </header>
 
-    <a class="nav-card" href="pages/rainfall-events-frequency.html" style="opacity:.6;pointer-events:none;">
-      <div class="nav-icon rain">📊</div>
-      <div>
-        <div class="nav-title">Rainfall Events &amp; Frequency</div>
-        <div class="nav-desc">Return frequency analysis by gage/duration. Color-coded by recurrence (&lt;1yr to &gt;5yr).</div>
+    <section class="title-ribbon">
+      <div class="aiap-mark">AIAP</div>
+      <div class="rainwise-copy">
+        <h2>RainWise Rainfall Intelligence</h2>
+        <p>COH Wastewater System</p>
       </div>
-      <span class="nav-badge badge-planned">Planned</span>
-    </a>
+      <div class="update-block">
+        <div class="update-date" id="lastUpdateDate">—</div>
+        <div class="update-label">Last Update</div>
+      </div>
+    </section>
 
-    <a class="nav-card priority" href="pages/rainclass-trends.html" style="opacity:.6;pointer-events:none;">
-      <div class="nav-icon rain">📈</div>
-      <div>
-        <div class="nav-title">RainClass Trends</div>
-        <div class="nav-desc">Count of days per rainfall category per month. Multi-chart trend view.</div>
+    <main class="home-content">
+      <div class="qaqc-chip">Data QA/QC</div>
+
+      <div class="content-grid">
+        <section class="menu-column" aria-label="RainWise page navigation">
+          <div class="tile-stack">
+            <a class="menu-tile" href="pages/near-realtime-daily-rainfall.html">Near Realtime Daily Rainfall</a>
+            <a class="menu-tile" href="pages/weekly-rainfall.html">Near Realtime Weekly Rainfall</a>
+            <a class="menu-tile" href="pages/historical-rainfall-events-frequency.html">Historical Rainfall Events &amp; Frequency</a>
+            <a class="menu-tile" href="pages/ww-sso-2day-rainfall.html">Wet Weather SSO and 2-day Rainfall</a>
+            <div class="tile-row-split">
+              <a class="menu-tile" href="pages/rainclass-trends.html">RainClass Trends</a>
+              <div class="menu-tile is-disabled" aria-disabled="true">Annual WW-SSO Trends</div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="feature-panel" aria-label="Wet Weather SSO preview">
+          <h3>Wet Weather SSO Location Analytics</h3>
+          <div class="feature-preview">
+            <img src="assets/home-reference-101156.png" alt="Preview of the Wet Weather SSO Location Analytics page">
+          </div>
+        </aside>
       </div>
-      <span class="nav-badge badge-planned">Planned</span>
-    </a>
+    </main>
+
+    <div class="footer-note" id="footerUpdate"></div>
   </div>
 
-  <div class="nav-section">
-    <h2>Wet Weather SSO</h2>
+  <script src="data/dims.js"></script>
+  <script src="data/rain_2026.js"></script>
+  <script src="dataLoader.js"></script>
+  <script>
+    const refresh = window.MOCK?.Refresh_DateTime || {};
+    const rawDate = refresh.Date || refresh.DateTime || '';
+    const rawDateTime = refresh.DateTime || refresh.Date || '';
 
-    <a class="nav-card priority" href="pages/kpi-summary.html">
-      <div class="nav-icon kpi">📋</div>
-      <div>
-        <div class="nav-title">Summary KPIs</div>
-        <div class="nav-desc">Key metrics overview — rainfall records, SSO counts, and data coverage cards.</div>
-      </div>
-      <span class="nav-badge badge-priority">Built</span>
-    </a>
+    function formatDate(value) {
+      if (!value) return '—';
+      const parsed = new Date(value);
+      if (!Number.isNaN(parsed.getTime())) {
+        return `${parsed.getMonth() + 1}/${parsed.getDate()}/${parsed.getFullYear()}`;
+      }
+      const match = String(value).match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (match) return `${Number(match[2])}/${Number(match[3])}/${match[1]}`;
+      return String(value);
+    }
 
-    <a class="nav-card" href="pages/wetweather-sso-2day.html" style="opacity:.6;pointer-events:none;">
-      <div class="nav-icon sso">⚠️</div>
-      <div>
-        <div class="nav-title">WetWeather SSO 2-day Rainfall</div>
-        <div class="nav-desc">SSO events with antecedent 2-day rainfall. Map + detail table.</div>
-      </div>
-      <span class="nav-badge badge-planned">Planned</span>
-    </a>
-
-    <a class="nav-card" href="pages/ww-sso-2day-rainfall.html" style="opacity:.6;pointer-events:none;">
-      <div class="nav-icon sso">🗺️</div>
-      <div>
-        <div class="nav-title">WW-SSO and 2-day Rainfall</div>
-        <div class="nav-desc">SSO event analysis with 2-day rainfall context. Spatial + tabular view.</div>
-      </div>
-      <span class="nav-badge badge-planned">Planned</span>
-    </a>
-
-    <a class="nav-card" href="pages/annual-ww-sso-trends.html" style="opacity:.6;pointer-events:none;">
-      <div class="nav-icon sso">📉</div>
-      <div>
-        <div class="nav-title">Annual WW-SSO Trends</div>
-        <div class="nav-desc">Year-over-year wet weather SSO count bar chart + event detail table.</div>
-      </div>
-      <span class="nav-badge badge-planned">Planned</span>
-    </a>
-
-    <a class="nav-card" href="pages/ww-sso-location-analytics.html" style="opacity:.6;pointer-events:none;">
-      <div class="nav-icon sso">📍</div>
-      <div>
-        <div class="nav-title">WW-SSO Location Analytics</div>
-        <div class="nav-desc">Basin shape map, spatial cluster analysis, tables and charts.</div>
-      </div>
-      <span class="nav-badge badge-planned">Planned</span>
-    </a>
-  </div>
-
-  <div class="nav-section">
-    <h2>Quality &amp; Admin</h2>
-
-    <a class="nav-card" href="pages/data-qaqc.html" style="opacity:.6;pointer-events:none;">
-      <div class="nav-icon qa">🔍</div>
-      <div>
-        <div class="nav-title">Data QA/QC</div>
-        <div class="nav-desc">Data validation pivot table and spatial review map.</div>
-      </div>
-      <span class="nav-badge badge-planned">Planned</span>
-    </a>
-  </div>
-
-</div>
-
-<div class="footer">
-  <span>RainWise Smart Rainfall Intelligence · COH Wastewater · Houston Water Planning</span>
-  <span id="footerUpdate"></span>
-</div>
-
-<script src="data/dims.js"></script>
-<script src="data/rain_2026.js"></script>
-<script src="dataLoader.js"></script>
-<script>
-  document.getElementById('ssoCount').textContent    = window.MOCK?.vt_WW_SSO_Lisa?.length ?? '—';
-  document.getElementById('recordCount').textContent = (window.MOCK?.Realtime_rainfall_hcfcd_daily?.length ?? 0).toLocaleString();
-  document.getElementById('lastUpdate').textContent  = window.MOCK?.Refresh_DateTime?.Date ?? '—';
-  document.getElementById('footerUpdate').textContent = 'Last data refresh: ' + (window.MOCK?.Refresh_DateTime?.DateTime ?? '—');
-</script>
+    document.getElementById('lastUpdateDate').textContent = formatDate(rawDate);
+    document.getElementById('footerUpdate').textContent = rawDateTime ? `Last data refresh: ${rawDateTime}` : '';
+  </script>
 </body>
 </html>
